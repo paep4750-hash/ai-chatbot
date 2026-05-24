@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS AI - SUPER TERMINAL</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #0b0d17;
+      background-image: radial-gradient(circle at 50% 50%, #1a1f38 0%, #0b0d17 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #e2e8f0;
+      box-sizing: border-box;
+    }
+
+    .chat-container {
+      width: 100vw;
+      height: 100vh;
+      max-width: 800px;
+      max-height: 850px;
+      background: rgba(15, 22, 42, 0.95);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    @media (min-width: 600px) {
+      .chat-container {
+        border-radius: 16px;
+        height: 85vh;
+        width: 90vw;
+      }
+    }
+
+    .chat-header {
+      background: rgba(30, 41, 59, 0.9);
+      padding: 20px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header .status-tag {
+      font-size: 0.8rem;
+      background: rgba(0, 255, 157, 0.1);
+      color: #00ff9d;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 255, 157, 0.3);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      font-size: 1rem;
+    }
+
+    .msg {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .msg.bot {
+      background: #1e293b;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .msg.user {
+      background: linear-gradient(135deg, #0072ff, #00f0ff);
+      color: #ffffff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-input-area {
+      display: flex;
+      padding: 15px;
+      background: #0f172a;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 10px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: #00f0ff;
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+    }
+
+    .chat-submit {
+      background: #00f0ff;
+      border: none;
+      border-radius: 8px;
+      color: #0b0d17;
+      padding: 0 24px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <span>🤖 NEXUS AI CLOUD V3</span>
+      <span class="status-tag">STANDALONE APP</span>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">ยินดีต้อนรับสู่แอปแชต AI บนเซิร์ฟเวอร์ GitHub Pages! รอบนี้หน้าต่างขยายใหญ่เต็มจอและรันสคริปต์ได้สมบูรณ์แบบแล้ว ลองทักทายผมดูสิเพื่อน 👁️🫦👁️</div>
+    </div>
+
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความคุยกับ AI ตรงนี้..." autocomplete="off">
+      <button class="chat-submit" id="chatSubmit">SEND</button>
+    </div>
+  </div>
+
+  <script>
+    const chatInput = document.getElementById('chatInput');
+    const chatSubmit = document.getElementById('chatSubmit');
+    const chatMessages = document.getElementById('chatMessages');
+
+    const knowledgeBase = [
+      { keys: ["สวัสดี", "hello", "hi"], reply: "สวัสดีครับคุณผู้ใช้! ยินดีต้อนรับสู่เว็บแอปแบบเต็มหน้าจอ วันนี้อยากให้ช่วยสืบค้นเครื่องหมายอะไรพิมพ์บอกมาได้เลยครับ ✨" },
+      { keys: ["ทำอะไรอยู่", "ทำไรอยู่"], reply: "กำลังเชื่อมต่อระบบจาวาสคริปต์อยู่บนเซิร์ฟเวอร์ GitHub Pages ครับ เสถียรสุดๆ แน่นอน" },
+      { keys: ["555"], reply: "หัวเราะอร่อยเลยนะตัวเธอ 555555+ 👁️🫦👁️" },
+      { keys: ["จุลภาค", "ลูกน้ำ", ","], reply: "เครื่องหมาย จุลภาค ( , ) ใช้สำหรับคั่นรายการสิ่งของ หรือคั่นหลักพันของตัวเลขครับ" },
+      { keys: ["มหัพภาค", "จุด", "."], reply: "เครื่องหมาย มหัพภาค ( . ) ใช้เขียนไว้ท้ายตัวอักษรเพื่อทำเป็นคำย่อ หรือใช้เป็นจุดทศนิยมครับ" },
+      { keys: ["ทวิภาค", "โคลอน", ":"], reply: "เครื่องหมาย ทวิภาค ( : ) ใช้คั่นบอกเวลา (ชั่วโมง:นาที) หรือใช้เพื่ออธิบายไขความเพิ่มเติม" },
+      { keys: ["นขลิขิต", "วงเล็บ", "()"], reply: "เครื่องหมาย นขลิขิต หรือ วงเล็บ ( ) ใช้ครอบข้อความเพื่ออธิบายเพิ่มเติมให้ชัดเจนขึ้น" },
+      { keys: ["อัศเจรีย์", "ตกใจ", "!"], reply: "เครื่องหมาย อัศเจรีย์ ( ! ) นิยมใส่ไว้ข้างหลังคำอุทานเพื่อแสดงอารมณ์ตกใจหรือตื่นเต้นครับ" },
+      { keys: ["ปรัศนี", "คำถาม", "?"], reply: "เครื่องหมาย ปรัศนี ( ? ) ใช้ใส่ไว้ท้ายประโยคคำถามตามหลักภาษาสากล" },
+      { keys: ["อัญประกาศ", "คำพูด", "“"], reply: "เครื่องหมาย อัญประกาศ ( “...” ) มีทั้งแบบคู่และเดี่ยว ใช้ครอบข้อความที่เป็นบทสนทนาหรือคำพูด" },
+      { keys: ["ไม้ยมก", "ๆ"], reply: "เครื่องหมาย ไม้ยมก ( ๆ ) ใช้เขียนหลังคำหรือวลีเพื่อบ่งบอกให้อ่านคำนั้นซ้ำอีกครั้ง" },
+      { keys: ["ไปยาลน้อย", "ฯ"], reply: "เครื่องหมาย ไปยาลน้อย ( ฯ ) ใช้เขียนท้ายคำศัพท์ยาวๆ เพื่อย่อคำให้สั้นลง เช่น กรุงเทพฯ" },
+      { keys: ["ไปยาลใหญ่", "ฯลฯ"], reply: "เครื่องหมาย ไปยาลใหญ่ ( ฯลฯ ) ใช้เขียนท้ายรายการเพื่อบอกว่ายังมีของประเภทนี้อีกมาก (อ่านว่า และอื่นๆ)" }
+    ];
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (text === "") return;
+
+      const userDiv = document.createElement('div');
+      userDiv.className = 'msg user';
+      userDiv.textContent = text;
+      chatMessages.appendChild(userDiv);
+
+      chatInput.value = "";
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      setTimeout(() => {
+        let reply = "";
+        const lowerText = text.toLowerCase(); 
+        let found = false;
+
+        for (let item of knowledgeBase) {
+          for (let key of item.keys) {
+            if (lowerText.includes(key)) {
+              reply = item.reply;
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
+
+        if (!found) {
+          reply = "ระบบได้รับข้อความแล้ว! จาวาสคริปต์บนคลาวด์กำลังประมวลผลข้อมูลอย่างลื่นไหล ลองพิมพ์ถามเรื่อง 'ไม้ยมก' หรือ 'จุลภาค' ดูสิครับ!";
+        }
+
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg bot';
+        botDiv.textContent = `AI: ${reply}`;
+        chatMessages.appendChild(botDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }, 400);
+    }
+
+    chatSubmit.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  </script>
+
+</body>
+</html>
