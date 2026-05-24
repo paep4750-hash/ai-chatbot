@@ -101,11 +101,15 @@
       word-break: break-word;
     }
 
+    /* สไตล์สำหรับกล่องแสดงรูปภาพในแชต */
     .msg img {
       max-width: 100%;
+      max-height: 300px;
       border-radius: 8px;
-      margin-top: 5px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 8px;
+      display: block;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
     .msg.bot {
@@ -131,7 +135,6 @@
       align-items: center;
     }
 
-    /* ปุ่มแนบรูปเท่ๆ */
     .file-label {
       background: rgba(0, 240, 255, 0.1);
       color: #00f0ff;
@@ -141,11 +144,6 @@
       cursor: pointer;
       font-weight: bold;
       transition: 0.2s;
-    }
-
-    .file-label:hover {
-      background: #00f0ff;
-      color: #0b0d17;
     }
 
     .chat-input {
@@ -176,7 +174,6 @@
       font-weight: bold;
     }
     
-    /* กล่องพรีวิวรูปภาพก่อนกดส่ง */
     .preview-box {
       display: none;
       padding: 10px 15px;
@@ -220,7 +217,7 @@
       <label class="file-label" for="fileInput">📎</label>
       <input type="file" id="fileInput" accept="image/*" style="display: none;">
       
-      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความ หรือ วางรูปภาพ..." autocomplete="off">
+      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความ หรือ สั่ง 'ขอรูปแมว' เป็นภาษาอังกฤษ..." autocomplete="off">
       <button class="chat-submit" id="chatSubmit">SEND</button>
     </div>
   </div>
@@ -235,7 +232,6 @@
     const previewImg = document.getElementById('previewImg');
     const removePreview = document.getElementById('removePreview');
 
-    // ตัวซ่อนคีย์ขั้นเทพ ปลอดภัย 100%
     const s1 = "AIzaSyC_";
     const s2 = "VbO9kF1Wc";
     const s3 = "F7Kqv-Bar-";
@@ -243,15 +239,14 @@
     const _getEngineKey = () => s1 + s2 + s3 + s4;
 
     let chatHistory = JSON.parse(localStorage.getItem("nexus_chat_history")) || [];
-    let selectedImageData = null; // เก็บข้อมูล Base64 ของรูปภาพที่จะส่ง
+    let selectedImageData = null;
 
-    // ดักจับการเลือกไฟล์รูปภาพ
     fileInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
-          selectedImageData = event.target.result; // ได้ข้อมูล base64
+          selectedImageData = event.target.result;
           previewImg.src = selectedImageData;
           previewBox.style.display = 'flex';
         };
@@ -259,14 +254,13 @@
       }
     });
 
-    // ปุ่มลบรูปพรีวิวออก
     removePreview.addEventListener('click', function() {
       selectedImageData = null;
       fileInput.value = '';
       previewBox.style.display = 'none';
     });
 
-    // ฟังก์ชันวาดข้อความและรูปภาพขึ้นหน้าจอ
+    // 🕵️‍♂️ ฟังก์ชันอัจฉริยะ ตรวจจับลิงก์รูปภาพในข้อความเพื่อแปลงให้แสดงเป็นภาพจริง
     function renderMessage(text, sender, base64Image = null) {
       const msgDiv = document.createElement('div');
       msgDiv.className = `msg ${sender}`;
@@ -275,6 +269,17 @@
         const textSpan = document.createElement('span');
         textSpan.textContent = text;
         msgDiv.appendChild(textSpan);
+
+        // ดักจับว่าในข้อความมีลิงก์รูปภาพส่งมาไหม (เช่น ลิงก์ที่ลงท้ายด้วย jpg, png หรือของคลังรูปภาพ)
+        const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp))/i;
+        const unsplashRegex = /(https?:\/\/images\.unsplash\.com\/[^\s]+)/i;
+        const match = text.match(imageRegex) || text.match(unsplashRegex);
+        
+        if (match) {
+          const img = document.createElement('img');
+          img.src = match[0];
+          msgDiv.appendChild(img);
+        }
       }
       
       if (base64Image) {
@@ -299,31 +304,33 @@
     }
 
     async function sendMessage() {
-      const text = chatInput.value.trim();
+      let text = chatInput.value.trim();
       if (text === "" && !selectedImageData) return;
 
-      // บันทึกและพ่นแชตฝั่งผู้ใช้ (รวมรูปภาพถ้ามี)
-      renderMessage(text, "user", selectedImageData);
-      chatHistory.push({ text: text, sender: "user", image: selectedImageData });
+      // 🤖 ลูกเล่นสับขาหลอก: ถ้าคุณสั่งว่า "ขอรูป..." เป็นภาษาไทย หรือภาษาอังกฤษ
+      // เราแอบสั่งให้ AI แปะลิงก์รูปภาพฟรีจากคลังภาพส่งกลับมาให้
+      if (text.toLowerCase().includes("ขอรูป") || text.toLowerCase().includes("show me picture of")) {
+        text += " (Please output a relevant high-quality image URL from https://source.unsplash.com/featured/?<keyword> or direct image link inline so the user can see it)";
+      }
+
+      renderMessage(chatInput.value.trim(), "user", selectedImageData);
+      chatHistory.push({ text: chatInput.value.trim(), sender: "user", image: selectedImageData });
       localStorage.setItem("nexus_chat_history", JSON.stringify(chatHistory));
 
-      // เคลียร์ค่ากล่องรับข้อมูล
       const currentImg = selectedImageData;
       chatInput.value = "";
       selectedImageData = null;
       previewBox.style.display = 'none';
       fileInput.value = '';
 
-      // แสดงสถานะบอทกำลังโหลด
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'msg bot';
-      loadingDiv.textContent = "AI กำลังประมวลผลข้อมูลและรูปภาพสักครู่...";
+      loadingDiv.textContent = "AI กำลังประมวลผลข้อมูลสักครู่...";
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${_getEngineKey()}`;
 
-      // ปรับโครงสร้างข้อมูลส่งไปหาโมเดล Gemini 3 ให้รองรับทั้งข้อความและรูปภาพแบบ Multimodal
       let contentsPayload = [];
       let parts = [];
       
@@ -371,7 +378,7 @@
         if (chatMessages.contains(loadingDiv)) {
           chatMessages.removeChild(loadingDiv);
         }
-        renderMessage("ไม่สามารถส่งข้อมูลรูปภาพไปยังเซิร์ฟเวอร์ได้ กรุณาลองใหมี่อีกครั้ง", "bot");
+        renderMessage("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่", "bot");
       }
     }
 
