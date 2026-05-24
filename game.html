@@ -49,5 +49,238 @@
       touch-action: none;
     }
     #joystick-stick {
-      width: 5
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #0072ff, #00f0ff);
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0, 240, 255, 0.4);
+      position: absolute;
+      touch-action: none;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="ui-info">
+    <h1>🌲 NEXUS 3D OPEN WORLD</h1>
+    <p>เลื่อนจอยสติ๊กซ้ายล่างเพื่อเดิน | ปัดหน้าจอฝั่งขวาเพื่อหันมองรอบๆ</p>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div id="joystick-zone">
+    <div id="joystick-stick"></div>
+  </div>
+
+  <script>
+    // --- 1. SETUP โลกจำลอง 3D ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB); // สีฟ้าท้องฟ้า
+    scene.fog = new THREE.FogExp2(0x87CEEB, 0.015); // เพิ่มหมอกเนียนๆ
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // --- 2. ระบบแสงและเงา ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 1.0);
+    sunLight.position.set(30, 50, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    scene.add(sunLight);
+
+    // --- 3. สร้างพื้นหญ้าสีเขียว ---
+    const groundGeo = new THREE.PlaneGeometry(200, 200);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x3b8216, roughness: 0.9 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // --- 4. ตัวละครผู้เล่น (สี่เหลี่ยม Capsule) ---
+    const playerGroup = new THREE.Group();
+    const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, roughness: 0.5 });
+    const playerBody = new THREE.Mesh(bodyGeo, bodyMat);
+    playerBody.position.y = 1;
+    playerBody.castShadow = true;
+    playerGroup.add(playerBody);
+    
+    // หน้าตาตัวละคร (ชี้ทิศทางหน้า)
+    const eyeGeo = new THREE.BoxGeometry(0.4, 0.2, 0.4);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const playerEye = new THREE.Mesh(eyeGeo, eyeMat);
+    playerEye.position.set(0, 1.5, 0.5);
+    playerGroup.add(playerEye);
+
+    scene.add(playerGroup);
+    playerGroup.position.set(0, 0, 0);
+
+    // ตั้งกล้องให้ตามหลังตัวละคร (Third Person View)
+    const cameraOffset = new THREE.Vector3(0, 5, -10);
+
+    // --- 5. เสกต้นไม้ 3D สุ่มทั่วป่า ---
+    function createTree(x, z) {
+      const tree = new THREE.Group();
+      
+      // ลำต้น
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.5, 2.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 })
+      );
+      trunk.position.y = 1.25;
+      trunk.castShadow = true;
+      tree.add(trunk);
+
+      // พุ่มใบไม้ 3 ชั้นซ้อน
+      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.7 });
+      for(let i=0; i<3; i++) {
+        const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.8 - (i*0.3), 2.2, 8), leaveMat);
+        leaves.position.y = 2.5 + (i * 1.3);
+        leaves.castShadow = true;
+        tree.add(leaves);
+      }
+
+      tree.position.set(x, 0, z);
+      const scale = 0.8 + Math.random() * 0.6;
+      tree.scale.set(scale, scale, scale);
+      scene.add(tree);
+    }
+
+    // กระจายต้นไม้ 80 ต้นรอบแผนที่
+    for (let i = 0; i < 80; i++) {
+      let x = (Math.random() - 0.5) * 160;
+      let z = (Math.random() - 0.5) * 160;
+      if (Math.abs(x) < 8 && Math.abs(z) < 8) continue; // เว้นจุดเกิดตัวละคร
+      createTree(x, z);
+    }
+
+    // --- 6. ระบบลอจิกควบคุม JOYSTICK & ปัดกล้อง (Touch Control) ---
+    let moveX = 0, moveZ = 0;
+    let yaw = 0, pitch = 0; 
+    let isMovingJoystick = false;
+
+    const stick = document.getElementById('joystick-stick');
+    const zone = document.getElementById('joystick-zone');
+    const maxRadius = 45;
+
+    // จัดการระบบลากเดิน (Joystick Touch)
+    zone.addEventListener('touchstart', (e) => { isMovingJoystick = true; });
+    window.addEventListener('touchmove', (e) => {
+      if (!isMovingJoystick) return;
+      
+      const touch = Array.from(e.touches).find(t => t.target === zone || zone.contains(t.target));
+      if (!touch) return;
+
+      const rect = zone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let deltaX = touch.clientX - centerX;
+      let deltaY = touch.clientY - centerY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      if (distance > maxRadius) {
+        deltaX = (deltaX / distance) * maxRadius;
+        deltaY = (deltaY / distance) * maxRadius;
+      }
+
+      stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+      // แปลงค่าทิศทางไปใช้ขับเคลื่อนตัวละคร
+      moveX = deltaX / maxRadius;
+      moveZ = -deltaY / maxRadius; 
+    });
+
+    window.addEventListener('touchend', () => {
+      isMovingJoystick = false;
+      stick.style.transform = 'translate(0px, 0px)';
+      moveX = 0; moveZ = 0;
+    });
+
+    // 🎥 ระบบปัดหน้าจอฝั่งขวาเพื่อหันมอง (Swipe to look around)
+    let lastTouchX = 0, lastTouchY = 0;
+    let isRotatingCamera = false;
+
+    window.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      // ถ้าไม่ได้จิ้มฝั่งซ้ายตรงจอยสติ๊ก ให้ถือว่าเป็นการหมุนมุมกล้อง
+      if (touch.clientX > window.innerWidth / 2 || touch.clientY < window.innerHeight - 200) {
+        isRotatingCamera = true;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+      }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isRotatingCamera || isMovingJoystick) return;
+      const touch = e.touches[0];
+      
+      const deltaX = touch.clientX - lastTouchX;
+      const deltaY = touch.clientY - lastTouchY;
+
+      yaw -= deltaX * 0.005; // หมุนซ้ายขวา
+      pitch -= deltaY * 0.005; // ก้มเงย
+      pitch = Math.max(-Math.PI/4, Math.min(Math.PI/8, pitch)); // ล็อกไม่ให้กล้องคว่ำเกินไป
+
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
+    });
+
+    window.addEventListener('touchend', () => { isRotatingCamera = false; });
+
+    // --- 7. GAME LOOP (รันฟิสิกส์และการวาดผล) ---
+    const clock = new THREE.Clock();
+    const speed = 7; 
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
+      if (moveX !== 0 || moveZ !== 0) {
+        // คำนวณการเดินตามมุมกล้องที่หันไป
+        const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+        const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+        
+        const moveDirection = forward.clone().multiplyScalar(moveZ).add(right.clone().multiplyScalar(moveX));
+        moveDirection.normalize();
+
+        // ขยับตัวละคร
+        playerGroup.position.addScaledVector(moveDirection, speed * delta);
+        
+        // หมุนโมเดลตัวละครให้หันหน้าไปทิศที่เดิน
+        const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
+        playerGroup.rotation.y = targetAngle;
+      }
+
+      // คำนวณและอัปเดตมุมกล้องให้ล็อคตามหลังผู้เล่นแบบสมูท
+      const targetCamPos = new THREE.Vector3(
+        playerGroup.position.x - Math.sin(yaw) * 10 * Math.cos(pitch),
+        playerGroup.position.y + 4 + Math.sin(pitch) * 10,
+        playerGroup.position.z - Math.cos(yaw) * 10 * Math.cos(pitch)
+      );
+      camera.position.lerp(targetCamPos, 0.1);
+      camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
+
+      renderer.render(scene, camera);
+    }
+
+    // ปรับหน้าจอกรณีหมุนแท็บเล็ต
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
