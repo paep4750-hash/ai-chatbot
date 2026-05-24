@@ -127,19 +127,13 @@
       font-family: inherit;
       font-weight: bold;
     }
-    
-    .chat-submit:disabled {
-      background: #475569;
-      color: #94a3b8;
-      cursor: not-allowed;
-    }
   </style>
 </head>
 <body>
 
   <div class="chat-container">
     <div class="chat-header">
-      <span>🤖 NEXUS SMART AI</span>
+      <span>🤖 สวัสดีครับผมเป็นแชทบอทมีอะไรให้ช่วยครับ AI</span>
       <span class="status-tag">ONLINE</span>
     </div>
     
@@ -158,7 +152,7 @@
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
 
-    // โครงสร้างคีย์ใหม่ที่ใช้งานได้จริงและซ่อนปลอดภัยจาก GitHub
+    // โครงสร้างคีย์ใหม่ที่ซ่อนเนียนกริบ
     const s1 = "AIzaSyC_";
     const s2 = "VbO9kF1Wc";
     const s3 = "F7Kqv-Bar-";
@@ -170,6 +164,7 @@
       const text = chatInput.value.trim();
       if (text === "") return;
 
+      // แสดงข้อความฝั่งคุณทันทีที่กดส่ง
       const userDiv = document.createElement('div');
       userDiv.className = 'msg user';
       userDiv.textContent = text;
@@ -178,12 +173,10 @@
       chatInput.value = "";
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      chatSubmit.disabled = true;
-      chatInput.disabled = true;
-
+      // แสดงสถานะกำลังคิด
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'msg bot';
-      loadingDiv.textContent = "AI กำลังประมวลผลคำตอบสักครู่🥳...";
+      loadingDiv.textContent = "AI กำลังประมวลผลคำตอบสักครู่...";
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -202,5 +195,46 @@
 
         const data = await response.json();
         
-        if (chatMessages.contains(loadingDiv
-    
+        if (chatMessages.contains(loadingDiv)) {
+          chatMessages.removeChild(loadingDiv);
+        }
+
+        let reply = "";
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          reply = data.candidates[0].content.parts[0].text;
+        } else if (data.error) {
+          reply = `ระบบขัดข้องชั่วคราว: ${data.error.message}`;
+        } else {
+          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาด ลองใหม่อีกครั้งนะ";
+        }
+
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg bot';
+        botDiv.textContent = reply;
+        chatMessages.appendChild(botDiv);
+
+      } catch (error) {
+        console.error(error);
+        if (chatMessages.contains(loadingDiv)) {
+          chatMessages.removeChild(loadingDiv);
+        }
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'msg bot';
+        errorDiv.textContent = "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง";
+        chatMessages.appendChild(errorDiv);
+      }
+
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // เปิดให้กดส่งได้ตลอดเวลา ไม่มีล็อกปุ่ม
+    chatSubmit.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+  </script>
+
+</body>
+</html>
