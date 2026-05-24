@@ -139,7 +139,7 @@
 
   <div class="chat-container">
     <div class="chat-header">
-      <span>🤖ฉันเอง AI</span>
+      <span>🤖 NEXUS SMART AI</span>
       <span class="status-tag">ONLINE</span>
     </div>
     
@@ -183,7 +183,7 @@
 
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'msg bot';
-      loadingDiv.textContent = "AI ฉันกำลังประมวลผลรอสักครู่🥳...";
+      loadingDiv.textContent = "AI กำลังประมวลผลคำตอบสักครู่🥳...";
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -192,7 +192,8 @@
       try {
         const response = await fetch(API_URL, {
           method: "POST",
-          headers:models         "Content-Type": "application/json"
+          headers: {
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: text }] }]
