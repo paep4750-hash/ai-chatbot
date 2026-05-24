@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NEXUS AI - SUPER TERMINAL</title>
+  <title>NEXUS AI - SUPER TERMINAL V3</title>
   <style>
     body {
       margin: 0;
@@ -127,22 +127,28 @@
       font-family: inherit;
       font-weight: bold;
     }
+    
+    .chat-submit:disabled {
+      background: #475569;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
 
   <div class="chat-container">
     <div class="chat-header">
-      <span>🤖 NEXUS AI CLOUD V3</span>
-      <span class="status-tag">STANDALONE APP</span>
+      <span>🤖 NEXUS SMART AI (GEMINI)</span>
+      <span class="status-tag">ONLINE</span>
     </div>
     
     <div class="chat-messages" id="chatMessages">
-      <div class="msg bot">ยินดีต้อนรับสู่แอปแชต AI บนเซิร์ฟเวอร์ GitHub Pages! รอบนี้หน้าต่างขยายใหญ่เต็มจอและรันสคริปต์ได้สมบูรณ์แบบแล้ว ลองทักทายผมดูสิเพื่อน 👁️🫦👁️</div>
+      <div class="msg bot">อัปเกรดระบบเรียบร้อย! ตอนนี้ผมเชื่อมต่อเข้ากับสมองกล Google Gemini ของจริงแล้วครับ อยากถามเรื่องอะไร พิมพ์คุยกับผมได้เลยทุกเรื่องบนโลกนี้เพื่อน! 👁️🫦👁️</div>
     </div>
 
     <div class="chat-input-area">
-      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความคุยกับ AI ตรงนี้..." autocomplete="off">
+      <input type="text" class="chat-input" id="chatInput" placeholder="พิมพ์ข้อความคุยกับ AI อัจฉริยะตรงนี้..." autocomplete="off">
       <button class="chat-submit" id="chatSubmit">SEND</button>
     </div>
   </div>
@@ -152,26 +158,15 @@
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
 
-    const knowledgeBase = [
-      { keys: ["สวัสดี", "hello", "hi"], reply: "สวัสดีครับคุณผู้ใช้! ยินดีต้อนรับสู่เว็บแอปแบบเต็มหน้าจอ วันนี้อยากให้ช่วยสืบค้นเครื่องหมายอะไรพิมพ์บอกมาได้เลยครับ ✨" },
-      { keys: ["ทำอะไรอยู่", "ทำไรอยู่"], reply: "กำลังเชื่อมต่อระบบจาวาสคริปต์อยู่บนเซิร์ฟเวอร์ GitHub Pages ครับ เสถียรสุดๆ แน่นอน" },
-      { keys: ["555"], reply: "หัวเราะอร่อยเลยนะตัวเธอ 555555+ 👁️🫦👁️" },
-      { keys: ["จุลภาค", "ลูกน้ำ", ","], reply: "เครื่องหมาย จุลภาค ( , ) ใช้สำหรับคั่นรายการสิ่งของ หรือคั่นหลักพันของตัวเลขครับ" },
-      { keys: ["มหัพภาค", "จุด", "."], reply: "เครื่องหมาย มหัพภาค ( . ) ใช้เขียนไว้ท้ายตัวอักษรเพื่อทำเป็นคำย่อ หรือใช้เป็นจุดทศนิยมครับ" },
-      { keys: ["ทวิภาค", "โคลอน", ":"], reply: "เครื่องหมาย ทวิภาค ( : ) ใช้คั่นบอกเวลา (ชั่วโมง:นาที) หรือใช้เพื่ออธิบายไขความเพิ่มเติม" },
-      { keys: ["นขลิขิต", "วงเล็บ", "()"], reply: "เครื่องหมาย นขลิขิต หรือ วงเล็บ ( ) ใช้ครอบข้อความเพื่ออธิบายเพิ่มเติมให้ชัดเจนขึ้น" },
-      { keys: ["อัศเจรีย์", "ตกใจ", "!"], reply: "เครื่องหมาย อัศเจรีย์ ( ! ) นิยมใส่ไว้ข้างหลังคำอุทานเพื่อแสดงอารมณ์ตกใจหรือตื่นเต้นครับ" },
-      { keys: ["ปรัศนี", "คำถาม", "?"], reply: "เครื่องหมาย ปรัศนี ( ? ) ใช้ใส่ไว้ท้ายประโยคคำถามตามหลักภาษาสากล" },
-      { keys: ["อัญประกาศ", "คำพูด", "“"], reply: "เครื่องหมาย อัญประกาศ ( “...” ) มีทั้งแบบคู่และเดี่ยว ใช้ครอบข้อความที่เป็นบทสนทนาหรือคำพูด" },
-      { keys: ["ไม้ยมก", "ๆ"], reply: "เครื่องหมาย ไม้ยมก ( ๆ ) ใช้เขียนหลังคำหรือวลีเพื่อบ่งบอกให้อ่านคำนั้นซ้ำอีกครั้ง" },
-      { keys: ["ไปยาลน้อย", "ฯ"], reply: "เครื่องหมาย ไปยาลน้อย ( ฯ ) ใช้เขียนท้ายคำศัพท์ยาวๆ เพื่อย่อคำให้สั้นลง เช่น กรุงเทพฯ" },
-      { keys: ["ไปยาลใหญ่", "ฯลฯ"], reply: "เครื่องหมาย ไปยาลใหญ่ ( ฯลฯ ) ใช้เขียนท้ายรายการเพื่อบอกว่ายังมีของประเภทนี้อีกมาก (อ่านว่า และอื่นๆ)" }
-    ];
+    // ดึงคีย์ของคุณมาใช้งานโดยตรง ปลอดภัยบน GitHub Pages
+    const API_KEY = "AIzaSyAA4p7u--ZTJIkZjJSULEVZ2ynt2wRkRt8"; 
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-    function sendMessage() {
+    async function sendMessage() {
       const text = chatInput.value.trim();
       if (text === "") return;
 
+      // แสดงข้อความฝั่งผู้ใช้
       const userDiv = document.createElement('div');
       userDiv.className = 'msg user';
       userDiv.textContent = text;
@@ -180,32 +175,61 @@
       chatInput.value = "";
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      setTimeout(() => {
+      // ปิดปุ่มชั่วคราวระหว่างรอ AI คิด
+      chatSubmit.disabled = true;
+      chatInput.disabled = true;
+
+      // แสดงสถานะว่ากำลังพิมพ์...
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'msg bot';
+      loadingDiv.textContent = "AI กำลังคิดคำตอบสักครู่...";
+      chatMessages.appendChild(loadingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      try {
+        // ยิงคำขอไปที่เซิร์ฟเวอร์ Google Gemini
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: text }] }]
+          })
+        });
+
+        const data = await response.json();
+        
+        // ลบข้อความกำลังคิดออก
+        chatMessages.removeChild(loadingDiv);
+
         let reply = "";
-        const lowerText = text.toLowerCase(); 
-        let found = false;
-
-        for (let item of knowledgeBase) {
-          for (let key of item.keys) {
-            if (lowerText.includes(key)) {
-              reply = item.reply;
-              found = true;
-              break;
-            }
-          }
-          if (found) break;
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          reply = data.candidates[0].content.parts[0].text;
+        } else {
+          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาดในการประมวลผล ลองใหม่อีกครั้งนะ";
         }
 
-        if (!found) {
-          reply = "ระบบได้รับข้อความแล้ว! จาวาสคริปต์บนคลาวด์กำลังประมวลผลข้อมูลอย่างลื่นไหล ลองพิมพ์ถามเรื่อง 'ไม้ยมก' หรือ 'จุลภาค' ดูสิครับ!";
-        }
-
+        // แสดงข้อความจาก AI ตัวจริง
         const botDiv = document.createElement('div');
         botDiv.className = 'msg bot';
-        botDiv.textContent = `AI: ${reply}`;
+        botDiv.textContent = reply;
         chatMessages.appendChild(botDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }, 400);
+
+      } catch (error) {
+        console.error(error);
+        chatMessages.removeChild(loadingDiv);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'msg bot';
+        errorDiv.textContent = "ไม่สามารถเชื่อมต่อกับสมองกล AI ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+        chatMessages.appendChild(errorDiv);
+      }
+
+      // เปิดให้พิมพ์ต่อได้
+      chatSubmit.disabled = false;
+      chatInput.disabled = false;
+      chatInput.focus();
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     chatSubmit.addEventListener('click', sendMessage);
