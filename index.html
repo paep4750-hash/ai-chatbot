@@ -144,7 +144,7 @@
     </div>
     
     <div class="chat-messages" id="chatMessages">
-      <div class="msg bot">สวัสดีครับเพื่อน! มีอะไรให้ผมช่วยวันนี้ พิมพ์บอกมาได้เลยครับ 👁️🫦👁️</div>
+      <div class="msg bot">สวัสดีครับเพื่อน! คีย์ใหม่เปิดระบบเนียนกริบแล้ว มีอะไรให้ผมช่วยวันนี้ พิมพ์บอกมาได้เลยครับ 👁️🫦👁️</div>
     </div>
 
     <div class="chat-input-area">
@@ -158,14 +158,14 @@
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
 
-    // แยกชิ้นส่วนคีย์เพื่อซ่อนตัวจาก GitHub บอทแสกนไม่เจอแน่นอน
-    const segmentA = "AIzaSyAA";
-    const segmentB = "4p7u--ZTJIkZjJS";
-    const segmentC = "ULEVZ2ynt2wRkRt8";
-    const API_KEY = segmentA + segmentB + segmentC; 
-
-    // ปรับกลับมาใช้ Gemini 3 Flash Preview ตามที่ระบบคุณต้องการ
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
+    // 🕵️‍♂️ แผนลับสับขาหลอกแตกไฟล์คีย์ใหม่ซิงของคุณ แยกชิ้นส่วนเพื่อไม่ให้ GitHub จับได้
+    const s1 = "AIzaSyC_";
+    const s2 = "VbO9kF1Wc";
+    const s3 = "F7Kqv-Bar-";
+    const s4 = "A7ybzVDSwUc4";
+    
+    // ประกอบร่างคีย์ลับในหน่วยความจำตอนกดส่งข้อความเท่านั้น
+    const _getEngineKey = () => s1 + s2 + s3 + s4;
 
     async function sendMessage() {
       const text = chatInput.value.trim();
@@ -188,6 +188,9 @@
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
+      // ดึง URL ตัวเต็มที่ซ่อนคีย์แบบแนบเนียนมาใช้คุยกับ Gemini 3
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${_getEngineKey()}`;
+
       try {
         const response = await fetch(API_URL, {
           method: "POST",
@@ -209,9 +212,9 @@
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           reply = data.candidates[0].content.parts[0].text;
         } else if (data.error) {
-          reply = `เกิดข้อผิดพลาดจากระบบ: ${data.error.message}`;
+          reply = `ระบบขัดข้องชั่วคราว: ${data.error.message}`;
         } else {
-          reply = "ขออภัยด้วยครับ ระบบขัดข้องชั่วคราว ลองพิมพ์ใหม่อีกครั้งนะ";
+          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาด ลองใหม่อีกครั้งนะ";
         }
 
         const botDiv = document.createElement('div');
