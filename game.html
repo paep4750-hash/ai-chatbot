@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEXUS 3D SURVIVAL - FLASHLIGHT UPDATE</title>
+  <title>NEXUS 3D SURVIVAL - THE CAMPFIRE</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #050d07;
+      background-color: #020804;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       user-select: none;
       -webkit-user-select: none;
@@ -18,22 +18,44 @@
       width: 100vw;
       height: 100vh;
     }
-    #ui-info {
+    /* 📊 หน้าจอสถานะ UI */
+    #ui-container {
       position: absolute;
       top: 15px;
       left: 15px;
-      background: rgba(5, 13, 7, 0.9);
-      color: #ff3b3b;
-      padding: 12px 20px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 59, 59, 0.4);
+      background: rgba(5, 15, 7, 0.9);
+      color: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       pointer-events: none;
       z-index: 10;
+      min-width: 200px;
     }
-    h1 { margin: 0 0 4px 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
-    p { margin: 0; font-size: 0.85rem; color: #e2e8f0; }
+    .status-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+    #wave-text { color: #ffbc00; font-size: 1.2rem; }
+    
+    /* หลอดเลือด HP */
+    .bar-bg { width: 100%; height: 16px; background: #441111; border-radius: 8px; overflow: hidden; border: 1px solid #ff5555; }
+    #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff3333, #ff7777); transition: width 0.2s; }
+    
+    /* ข้อความแจ้งเตือนกลางหน้าจอ */
+    #msg-overlay {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ff3333;
+      font-size: 2rem;
+      font-weight: bold;
+      text-shadow: 0 0 8px #000;
+      pointer-events: none;
+      z-index: 10;
+      text-align: center;
+      display: none;
+    }
 
-    /* 🎯 เป้าเล็งกลางหน้าจอ */
+    /* 🎯 เป้าเล็ง */
     #crosshair {
       position: absolute;
       top: 50%;
@@ -45,10 +67,10 @@
       transform: translate(-50%, -50%);
       pointer-events: none;
       z-index: 5;
-      box-shadow: 0 0 4px #ff0000;
+      box-shadow: 0 0 6px #ff0000;
     }
 
-    /* 🕹️ ปุ่ม Joystick ซ้ายล่าง */
+    /* 🕹️ Joystick */
     #joystick-zone {
       position: absolute;
       bottom: 40px;
@@ -66,7 +88,6 @@
       height: 50px;
       background: linear-gradient(135deg, #ff3b3b, #ff7a00);
       border-radius: 50%;
-      box-shadow: 0 4px 10px rgba(255, 59, 59, 0.4);
       position: absolute;
       left: 35px;
       top: 35px;
@@ -77,134 +98,179 @@
 </head>
 <body>
 
-  <div id="ui-info">
-    <h1>🔦 NEXUS SURVIVAL - LIGHT V3</h1>
-    <p>อัปเกรดไฟฉาย Super Bright! ส่องตามมุมก้มเงยสายตาแล้วครับเพื่อน!</p>
+  <div id="ui-container">
+    <div class="status-row">
+      <span id="wave-text">WAVE 1 / 10</span>
+      <span id="wood-text">ไม้ในตัว: 0</span>
+    </div>
+    <div style="margin-bottom: 5px; font-size: 0.85rem; color:#aaa;">HP ของคุณ:</div>
+    <div class="bar-bg"><div id="hp-bar"></div></div>
+    <div style="font-size: 0.75rem; margin-top: 8px; color: #6be375;">*จิ้มหน้าจอฝั่งขวาเพื่อเหวี่ยงขวานโจมตี!*</div>
   </div>
 
+  <div id="msg-overlay"></div>
   <div id="crosshair"></div>
   <div id="canvas-container"></div>
 
-  <div id="joystick-zone">
-    <div id="joystick-stick"></div>
-  </div>
+  <div id="joystick-zone"><div id="joystick-stick"></div></div>
 
   <script>
-    // --- 1. SETUP โลก 3D ---
+    // --- 1. GAME STATE變數 ---
+    let hp = 100;
+    let currentWave = 1;
+    let woodCollected = 0;
+    let isGameOver = false;
+
+    // --- 2. SETUP THREE.JS SCENE ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050c06); 
-    scene.fog = new THREE.FogExp2(0x050c06, 0.032); // ปรับหมอกให้ลงตัวขึ้น
+    scene.background = new THREE.Color(0x020804); 
+    scene.fog = new THREE.FogExp2(0x020804, 0.035);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    // --- 2. แสงสว่าง (ปรับให้สว่างขึ้นเล็กน้อย) ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35); // เพิ่มแสงรอบข้างให้เห็นดีเทลหญ้าชัดขึ้น
+    // --- 3. ระบบแสง ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.15); 
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0x7fff96, 0.3);
-    sunLight.position.set(20, 50, 20);
-    scene.add(sunLight);
-
-    // 🔥 บัฟพลังไฟฉายติดตัว (Super Flashlight) - แรงขึ้น กว้างขึ้น ไกลขึ้น
-    const flashlight = new THREE.SpotLight(0xfffbe6, 5.0, 75, Math.PI / 4.5, 0.6, 0.5);
+    // ไฟฉาย Super Bright
+    const flashlight = new THREE.SpotLight(0xfffbe6, 5.0, 70, Math.PI / 4.5, 0.6, 0.5);
     flashlight.castShadow = true;
     scene.add(flashlight);
-    // เพิ่มเป้าหมายของไฟฉายเข้าไปในฉากเพื่อให้มันหันตามได้อิสระ
     scene.add(flashlight.target);
 
-    // --- 3. สร้างพื้นหญ้าสีป่าดิบ ---
-    const groundGeo = new THREE.PlaneGeometry(400, 400);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x162c19, roughness: 1.0 });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
+    // พื้นดินป่าดงดิบ
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x112213, roughness: 1.0 }));
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // --- 4. ตำแหน่งระดับสายตาผู้เล่น ---
-    const playerPosition = new THREE.Vector3(0, 2, 0);
+    const playerPosition = new THREE.Vector3(0, 2, 15); // เริ่มต้นห่างจากแคมป์ไฟเล็กน้อย
     camera.position.copy(playerPosition);
 
-    // --- 5. เสกโมเดลขวาน (AXE) ---
-    const axeGroup = new THREE.Group();
-    
-    const handleGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.9, 8);
-    const handleMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 });
-    const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.rotation.x = Math.PI / 2; 
-    axeGroup.add(handle);
+    // --- 4. สร้างกองไฟป่า (CAMPFIRE) ไว้ที่จุดศูนย์กลาง (0,0) ---
+    const campfireGroup = new THREE.Group();
+    campfireGroup.position.set(0, 0, 0);
 
-    const bladeGeo = new THREE.BoxGeometry(0.06, 0.22, 0.25);
-    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
-    const blade = new THREE.Mesh(bladeGeo, bladeMat);
-    blade.position.set(0, 0.08, -0.35); 
-    axeGroup.add(blade);
+    // ขอนไม้ฐานกองไฟ
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x3d2314 });
+    for(let i=0; i<4; i++) {
+      const campLog = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5), logMat);
+      campLog.rotation.z = Math.PI/2;
+      campLog.rotation.y = (Math.PI/4) * i;
+      campLog.position.y = 0.1;
+      campfireGroup.add(campLog);
+    }
+    scene.add(campfireGroup);
 
-    scene.add(axeGroup);
+    // แสงไฟและความร้อนจากแคมป์ไฟ 🔥
+    const campfireLight = new THREE.PointLight(0xff7700, 4, 30);
+    campfireLight.position.set(0, 1, 0);
+    scene.add(campfireLight);
 
-    // --- 6. ระเบิดต้นไม้สะใจ 600 ต้นให้ป่าทึบสุดๆ ---
-    function createTree(x, z) {
+    // ตัวแทนเอฟเฟกต์ลูกไฟ
+    const fireMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(0.6, 1.2, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff5500, wireframe: true })
+    );
+    fireMesh.position.set(0, 0.6, 0);
+    scene.add(fireMesh);
+
+    // --- 5. เสกต้นไม้ 600 ต้น และเศษไม้รอบๆ ---
+    const woodLogs = [];
+    function createTreeAndWood(x, z) {
+      // เว้นจุดแคมป์ไฟตรงกลางไว้
+      if (Math.abs(x) < 18 && Math.abs(z) < 18) return;
+
       const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.55, 5, 8),
-        new THREE.MeshStandardMaterial({ color: 0x3e2713, roughness: 0.9 })
-      );
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 5, 8), new THREE.MeshStandardMaterial({ color: 0x3e2713 }));
       trunk.position.y = 2.5;
       tree.add(trunk);
 
-      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x0a2910, roughness: 0.8 });
+      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x05210b, roughness: 0.8 });
       for(let i=0; i<4; i++) {
         const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.6 - (i*0.5), 3.5, 8), leaveMat);
         leaves.position.y = 4.0 + (i * 1.5);
         tree.add(leaves);
       }
-
       tree.position.set(x, 0, z);
-      const scale = 0.6 + Math.random() * 0.8;
-      tree.scale.set(scale, scale, scale);
       scene.add(tree);
+
+      // โอกาส 25% ที่จะมีเศษไม้ดรอปอยู่ใต้ต้นไม้ให้ผู้เล่นเก็บมาเติมไฟ 🪵
+      if(Math.random() < 0.25) {
+        const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6), new THREE.MeshStandardMaterial({ color: 0x8b5a2b }));
+        wood.rotation.z = Math.PI / 2;
+        wood.rotation.y = Math.random() * Math.PI;
+        wood.position.set(x + (Math.random() - 0.5)*3, 0.08, z + (Math.random() - 0.5)*3);
+        scene.add(wood);
+        woodLogs.push(wood);
+      }
     }
 
     for (let i = 0; i < 600; i++) {
-      let x = (Math.random() - 0.5) * 360;
-      let z = (Math.random() - 0.5) * 360;
-      if (Math.abs(x) < 12 && Math.abs(z) < 12) continue; 
-      createTree(x, z);
+      let x = (Math.random() - 0.5) * 400;
+      let z = (Math.random() - 0.5) * 400;
+      createTreeAndWood(x, z);
     }
 
-    // --- 7. เสกศัตรูบล็อกกลมๆ แดงๆ ---
+    // --- 6. เสกโมเดลขวาน (AXE) ติดหน้าจอ ---
+    const axeGroup = new THREE.Group();
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), new THREE.MeshStandardMaterial({ color: 0x5c3a21 }));
+    handle.rotation.x = Math.PI / 2;
+    axeGroup.add(handle);
+
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.22), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 }));
+    blade.position.set(0, 0.06, -0.3);
+    axeGroup.add(blade);
+    scene.add(axeGroup);
+
+    // --- 7. ระบบศัตรูบล็อกกลมสีแดง (ENEMIES) ---
     const enemies = [];
-    const enemyCount = 25; 
-
-    function spawnEnemy() {
-      const enemyGeo = new THREE.SphereGeometry(1.3, 16, 16);
-      const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x550000 });
-      const enemy = new THREE.Mesh(enemyGeo, enemyMat);
-      
-      let x = (Math.random() - 0.5) * 300;
-      let z = (Math.random() - 0.5) * 300;
-      while(Math.abs(x) < 30 && Math.abs(z) < 30) {
-        x = (Math.random() - 0.5) * 300;
-        z = (Math.random() - 0.5) * 300;
+    
+    function spawnWave(waveNum) {
+      if(waveNum > 10) {
+        showOverlay("🎉 คุณชนะเกม! รอดพ้นทัง 10 เวฟ!", "#6be375");
+        isGameOver = true;
+        return;
       }
-      enemy.position.set(x, 1.3, z);
-      scene.add(enemy);
-      enemies.push(enemy);
+      
+      document.getElementById('wave-text').innerText = `WAVE ${waveNum} / 10`;
+      showOverlay(`⚠️ WAVE ${waveNum} เริ่มต้น!`, "#ff3b3b");
+
+      // เวฟยิ่งสูง มอนยิ่งเกิดเยอะขึ้น
+      const count = 5 + (waveNum * 3); 
+      for(let i=0; i<count; i++) {
+        const enemyGeo = new THREE.SphereGeometry(1.2, 16, 16);
+        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x660000 });
+        const enemy = new THREE.Mesh(enemyGeo, enemyMat);
+        
+        // เกิดรอบๆ แมพห่างขอบแคมป์ไฟออกไป
+        let angle = Math.random() * Math.PI * 2;
+        let radius = 60 + Math.random() * 80;
+        enemy.position.set(Math.cos(angle) * radius, 1.2, Math.sin(angle) * radius);
+        
+        // เก็บสถานะคูลดาวน์ดาเมจไว้ในตัวมอนสเตอร์เลย
+        enemy.userData = { lastAttackTime: 0 };
+        
+        scene.add(enemy);
+        enemies.push(enemy);
+      }
     }
 
-    for(let i=0; i<enemyCount; i++) spawnEnemy();
+    // เปิดเวฟแรกทันทีตอนเริ่มเกม
+    setTimeout(() => { spawnWave(currentWave); }, 1500);
 
-    // --- 8. ระบบควบคุม MULTI-TOUCH แบบแยกนิ้วอิสระ ---
+    // --- 8. ระบบปุ่มควบคุม MULTI-TOUCH และระบุการฟันโจมตี ---
     let moveX = 0, moveZ = 0;
     let yaw = 0, pitch = 0;
-    
     let joystickTouchId = null;
     let lookTouchId = null;
     let lastTouchX = 0, lastTouchY = 0;
+    let isAttacking = false;
+    let attackTimer = 0;
 
     const stick = document.getElementById('joystick-stick');
     const zone = document.getElementById('joystick-zone');
@@ -214,8 +280,10 @@
     const maxRadius = 35;
 
     window.addEventListener('touchstart', (e) => {
+      if(isGameOver) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
+        
         if (touch.clientX < window.innerWidth / 2 && touch.clientY > window.innerHeight / 2 && joystickTouchId === null) {
           joystickTouchId = touch.identifier;
           updateJoystick(touch);
@@ -223,6 +291,13 @@
           lookTouchId = touch.identifier;
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
+          
+          // 🔥 ทริกเกอร์: ถ้าจิ้มหน้าจอฝั่งขวา แปลว่าสั่งเหวี่ยงขวานโจมตีด้วย!
+          if(!isAttacking && touch.clientX > window.innerWidth / 3) {
+            isAttacking = true;
+            attackTimer = 0;
+            executeAxeAttack();
+          }
         }
       }
     }, { passive: false });
@@ -230,17 +305,13 @@
     window.addEventListener('touchmove', (e) => {
       for (let i = 0; i < e.touches.length; i++) {
         const touch = e.touches[i];
-        if (touch.identifier === joystickTouchId) {
-          updateJoystick(touch);
-        }
+        if (touch.identifier === joystickTouchId) updateJoystick(touch);
         if (touch.identifier === lookTouchId) {
           const deltaX = touch.clientX - lastTouchX;
           const deltaY = touch.clientY - lastTouchY;
-
           yaw -= deltaX * 0.005;
           pitch -= deltaY * 0.005;
-          pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, pitch)); // เพิ่มระยะเงยหน้าขึ้นฟ้าก้มมองพื้น
-
+          pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, pitch));
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
         }
@@ -255,9 +326,7 @@
           stick.style.transform = 'translate(0px, 0px)';
           moveX = 0; moveZ = 0;
         }
-        if (touch.identifier === lookTouchId) {
-          lookTouchId = null;
-        }
+        if (touch.identifier === lookTouchId) lookTouchId = null;
       }
     });
 
@@ -265,7 +334,6 @@
       let deltaX = touch.clientX - centerX;
       let deltaY = touch.clientY - centerY;
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
       if (distance > maxRadius) {
         deltaX = (deltaX / distance) * maxRadius;
         deltaY = (deltaY / distance) * maxRadius;
@@ -275,64 +343,152 @@
       moveZ = -deltaY / maxRadius;
     }
 
-    // --- 9. GAME LOOP ---
+    // 🔥 ระบบคำนวณการใช้ขวานสับมอนสเตอร์ (ดาเมจ 100 ทีเดียวตาย)
+    function executeAxeAttack() {
+      // สร้าง Raycast ยิงลำแสงจากเป้าเล็งกลางจอไปข้างหน้า
+      const raycaster = new THREE.Raycaster();
+      // ศูนย์กลางจอคือพิกัดเวกเตอร์ (0,0) ใน Three.js
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      
+      // ระยะฟันของขวานหวังผล (6 เมตร)
+      const intersects = raycaster.intersectObjects(enemies);
+      
+      if(intersects.length > 0 && intersects[0].distance < 6) {
+        const hitEnemy = intersects[0].object;
+        const index = enemies.indexOf(hitEnemy);
+        if(index > -1) {
+          // ลบออกจากฉากทันที (ตายในทีเดียว)
+          scene.remove(hitEnemy);
+          enemies.splice(index, 1);
+          
+          // เช็คเงื่อนไขหมดเวฟ
+          if(enemies.length === 0 && !isGameOver) {
+            currentWave++;
+            setTimeout(() => { spawnWave(currentWave); }, 2000);
+          }
+        }
+      }
+    }
+
+    // ฟังก์ชันโชว์ตัวอักษรประกาศเวฟกลางหน้าจอ
+    function showOverlay(text, color) {
+      const overlay = document.getElementById('msg-overlay');
+      overlay.innerText = text;
+      overlay.style.color = color;
+      overlay.style.display = 'block';
+      setTimeout(() => { overlay.style.display = 'none'; }, 2500);
+    }
+
+    // --- 9. MAIN GAME LOOP ---
     const clock = new THREE.Clock();
-    const playerSpeed = 7.5;
+    const playerSpeed = 8.0;
     const enemySpeed = 4.8;
+    const campfireRadius = 14; // รัศมีอาณาเขตปลอดภัยที่มอนไม่กล้าเข้าใกล้
 
     function animate() {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+      if(isGameOver) return;
 
-      // เดินตามสายตา
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      // ขยับผู้เล่นตามจอย
       if (moveX !== 0 || moveZ !== 0) {
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-        const moveDirection = forward.clone().multiplyScalar(moveZ).add(right.clone().multiplyScalar(moveX));
-        moveDirection.normalize();
+        const moveDirection = forward.clone().multiplyScalar(moveZ).add(right.clone().multiplyScalar(moveX)).normalize();
         playerPosition.addScaledVector(moveDirection, playerSpeed * delta);
       }
-
       camera.position.copy(playerPosition);
 
-      // คำนวณเวกเตอร์สายตา (หันซ้ายขวา ก้มเงย)
-      const target = new THREE.Vector3(0, 0, -1);
-      target.applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
-      target.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      // คำนวณทิศสายตา
+      const target = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
       const lookDirection = target.clone().normalize();
-      
-      // จุดที่ตากำลังมองไป
-      const lookTarget = camera.position.clone().add(lookDirection);
-      camera.lookAt(lookTarget);
+      camera.lookAt(camera.position.clone().add(lookDirection));
 
-      // 🔥 แก้ไขระบบไฟฉาย: ให้ไฟฉายตั้งต้นที่ตา และส่องไปที่จุดที่มองอยู่เป๊ะๆ (รองรับการก้มเงยสมบูรณ์แบบ)
+      // ผูกไฟฉายเข้ากับพิกัดสายตา
       flashlight.position.copy(camera.position);
       flashlight.target.position.copy(camera.position.clone().add(lookDirection.clone().multiplyScalar(10)));
 
-      // ล็อกตำแหน่งขวานให้อยู่ขวาหน้าตรงสายตาพอดี
-      const axePos = camera.position.clone()
-        .add(lookDirection.clone().multiplyScalar(0.5)) 
-        .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25)) 
-        .add(new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(0.2));  
-      
-      axeGroup.position.copy(axePos);
-      axeGroup.rotation.set(pitch, yaw, 0);
+      // กองไฟสั่นไหวสมจริง
+      fireMesh.scale.set(1 + Math.sin(time*10)*0.1, 1 + Math.cos(time*12)*0.1, 1);
 
-      // ขวานสั่นเวลาเดิน
-      if(moveX !== 0 || moveZ !== 0) {
-        axeGroup.position.y += Math.sin(clock.getElapsedTime() * 12) * 0.008;
-        axeGroup.position.x += Math.cos(clock.getElapsedTime() * 6) * 0.004;
+      // 🪵 ระบบตรวจสอบการเดินไป "เก็บเศษไม้"
+      for(let i = woodLogs.length - 1; i >= 0; i--) {
+        if(playerPosition.distanceTo(woodLogs[i].position) < 2.5) {
+          scene.remove(woodLogs[i]);
+          woodLogs.splice(i, 1);
+          woodCollected++;
+          document.getElementById('wood-text').innerText = `ไม้ในตัว: ${woodCollected}`;
+        }
       }
 
-      // ระบบ AI บล็อกแดงวิ่งไล่กวด
+      // 🪵 ระบบตรวจสอบการเดินเอาไม้ไป "เติมกองไฟกลางแมพ"
+      if(woodCollected > 0 && playerPosition.distanceTo(new THREE.Vector3(0, 2, 0)) < 4) {
+        woodCollected = 0;
+        document.getElementById('wood-text').innerText = `ไม้ในตัว: 0`;
+        showOverlay("🔥 เติมเชื้อเพลิงกองไฟเรียบร้อย ปลอดภัย!", "#6be375");
+      }
+
+      // 🪓 ลอจิกอนิเมชันตอนฟันขวาน
+      const axePos = camera.position.clone()
+        .add(lookDirection.clone().multiplyScalar(0.5))
+        .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25))
+        .add(new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(0.2));
+      
+      axeGroup.position.copy(axePos);
+      
+      if (isAttacking) {
+        attackTimer += delta * 7; // ความเร็วอนิเมชันเหวี่ยง
+        // เอฟเฟกต์หมุนสับขวานไปข้างหน้า
+        axeGroup.rotation.set(pitch + Math.sin(attackTimer) * 0.6, yaw, -Math.sin(attackTimer) * 0.3);
+        if(attackTimer > Math.PI) { isAttacking = false; }
+      } else {
+        axeGroup.rotation.set(pitch, yaw, 0);
+        // เดินแล้วขวานสั่นเบาๆ
+        if(moveX !== 0 || moveZ !== 0) {
+          axeGroup.position.y += Math.sin(time * 12) * 0.006;
+        }
+      }
+
+      // 🔴 AI มอนสเตอร์วิ่งไล่ และกลัวแคมป์ไฟ
+      const currentTimeMs = Date.now();
       enemies.forEach(enemy => {
-        const dist = enemy.position.distanceTo(playerPosition);
-        if(dist < 70) { 
-          const direction = new THREE.Vector3().subVectors(playerPosition, enemy.position);
-          direction.y = 0;
-          direction.normalize();
-          enemy.position.addScaledVector(direction, enemySpeed * delta);
-          enemy.position.y = 1.3 + Math.abs(Math.sin(clock.getElapsedTime() * 6 + enemy.id)) * 0.8;
+        const distToPlayer = enemy.position.distanceTo(playerPosition);
+        const distToCampfire = enemy.position.distanceTo(new THREE.Vector3(0, 1.2, 0));
+
+        // เงื่อนไข: ถ้ายูนิทยังอยู่ห่างแคมป์ไฟ จะเดินไล่ตามปกติ
+        if (distToCampfire > campfireRadius) {
+          if (distToPlayer < 80) {
+            const dir = new THREE.Vector3().subVectors(playerPosition, enemy.position);
+            dir.y = 0; dir.normalize();
+            enemy.position.addScaledVector(dir, enemySpeed * delta);
+            enemy.position.y = 1.3 + Math.abs(Math.sin(time * 6 + enemy.id)) * 0.7;
+          }
+        } else {
+          // 🔥 ถ้ามันหลุดเข้าใกล้รัศมีแคมป์ไฟ มันจะโดนแรงสะท้อนผลักให้วิ่งถอยหลังหนีออกไปทันที!
+          const pushDir = new THREE.Vector3().subVectors(enemy.position, new THREE.Vector3(0, 1.2, 0));
+          pushDir.y = 0; pushDir.normalize();
+          enemy.position.addScaledVector(pushDir, enemySpeed * 1.5 * delta);
+        }
+
+        // ⚔️ ระบบมอนสเตอร์สร้างดาเมจ (Damage 50, ทุกๆ 2 วินาที)
+        if (distToPlayer < 2.5) {
+          // ตรวจสอบคูลดาวน์ 2 วินาที (2000 มิลลิวินาที)
+          if (currentTimeMs - enemy.userData.lastAttackTime > 2000) {
+            hp -= 50;
+            enemy.userData.lastAttackTime = currentTimeMs; // รีเซ็ตเวลาโจมตีล่าสุด
+            
+            // อัปเดตแถบเลือดบนจอ
+            document.getElementById('hp-bar').style.width = `${hp}%`;
+            
+            if (hp <= 0 && !isGameOver) {
+              showOverlay("💀 GAME OVER! คุณถูกบล็อกแดงขย้ำ!", "#ff3333");
+              isGameOver = true;
+            } else {
+              showOverlay("💥 โดนโจมตี! HP ลดลง 50!", "#ff7700");
+            }
+          }
         }
       });
 
