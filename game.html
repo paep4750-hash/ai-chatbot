@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEXUS 3D SURVIVAL - FIXED V2</title>
+  <title>NEXUS 3D SURVIVAL - FLASHLIGHT UPDATE</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0b1a0e;
+      background-color: #050d07;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       user-select: none;
       -webkit-user-select: none;
@@ -22,7 +22,7 @@
       position: absolute;
       top: 15px;
       left: 15px;
-      background: rgba(11, 26, 14, 0.9);
+      background: rgba(5, 13, 7, 0.9);
       color: #ff3b3b;
       padding: 12px 20px;
       border-radius: 10px;
@@ -78,8 +78,8 @@
 <body>
 
   <div id="ui-info">
-    <h1>🌲 NEXUS FOREST SURVIVAL V2</h1>
-    <p>เดินพร้อมหันกล้องได้แล้ว! บล็อกแดง 🔴 บุกป่าทึบ 600 ต้น!</p>
+    <h1>🔦 NEXUS SURVIVAL - LIGHT V3</h1>
+    <p>อัปเกรดไฟฉาย Super Bright! ส่องตามมุมก้มเงยสายตาแล้วครับเพื่อน!</p>
   </div>
 
   <div id="crosshair"></div>
@@ -92,8 +92,8 @@
   <script>
     // --- 1. SETUP โลก 3D ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a140d); 
-    scene.fog = new THREE.FogExp2(0x0a140d, 0.035); // เพิ่มหมอกให้หนาขึ้น ป่าจะได้ดูทึบลึกลับ
+    scene.background = new THREE.Color(0x050c06); 
+    scene.fog = new THREE.FogExp2(0x050c06, 0.032); // ปรับหมอกให้ลงตัวขึ้น
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     
@@ -102,45 +102,46 @@
     renderer.shadowMap.enabled = true;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    // --- 2. แสงสว่าง ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.25); 
+    // --- 2. แสงสว่าง (ปรับให้สว่างขึ้นเล็กน้อย) ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35); // เพิ่มแสงรอบข้างให้เห็นดีเทลหญ้าชัดขึ้น
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xa9ffb6, 0.4); // แสงโทนป่าเขียวทึมๆ
+    const sunLight = new THREE.DirectionalLight(0x7fff96, 0.3);
     sunLight.position.set(20, 50, 20);
     scene.add(sunLight);
 
-    // ไฟฉายส่องทางข้างหน้าตัวเรา
-    const flashlight = new THREE.SpotLight(0xfff9e6, 2.0, 50, Math.PI / 5, 0.5, 1);
+    // 🔥 บัฟพลังไฟฉายติดตัว (Super Flashlight) - แรงขึ้น กว้างขึ้น ไกลขึ้น
+    const flashlight = new THREE.SpotLight(0xfffbe6, 5.0, 75, Math.PI / 4.5, 0.6, 0.5);
+    flashlight.castShadow = true;
     scene.add(flashlight);
+    // เพิ่มเป้าหมายของไฟฉายเข้าไปในฉากเพื่อให้มันหันตามได้อิสระ
+    scene.add(flashlight.target);
 
     // --- 3. สร้างพื้นหญ้าสีป่าดิบ ---
     const groundGeo = new THREE.PlaneGeometry(400, 400);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x142616, roughness: 1.0 });
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x162c19, roughness: 1.0 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
     scene.add(ground);
 
     // --- 4. ตำแหน่งระดับสายตาผู้เล่น ---
     const playerPosition = new THREE.Vector3(0, 2, 0);
     camera.position.copy(playerPosition);
 
-    // --- 5. เสกโมเดลขวาน (AXE) แบบสมจริงติดหน้ากล้อง ---
+    // --- 5. เสกโมเดลขวาน (AXE) ---
     const axeGroup = new THREE.Group();
     
-    // ด้ามขวานไม้กลมๆ ยาวๆ
     const handleGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.9, 8);
     const handleMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9 });
     const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.position.set(0, 0, 0);
-    handle.rotation.x = Math.PI / 2; // หันด้ามพุ่งไปข้างหน้า
+    handle.rotation.x = Math.PI / 2; 
     axeGroup.add(handle);
 
-    // หัวขวานเหล็กคมๆ
     const bladeGeo = new THREE.BoxGeometry(0.06, 0.22, 0.25);
     const bladeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
     const blade = new THREE.Mesh(bladeGeo, bladeMat);
-    blade.position.set(0, 0.08, -0.35); // แปะไว้ที่ปลายด้ามไม้
+    blade.position.set(0, 0.08, -0.35); 
     axeGroup.add(blade);
 
     scene.add(axeGroup);
@@ -148,7 +149,6 @@
     // --- 6. ระเบิดต้นไม้สะใจ 600 ต้นให้ป่าทึบสุดๆ ---
     function createTree(x, z) {
       const tree = new THREE.Group();
-      // ลำต้นสูงใหญ่
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.35, 0.55, 5, 8),
         new THREE.MeshStandardMaterial({ color: 0x3e2713, roughness: 0.9 })
@@ -156,7 +156,6 @@
       trunk.position.y = 2.5;
       tree.add(trunk);
 
-      // ใบไม้พุ่มหนา 4 ชั้น
       const leaveMat = new THREE.MeshStandardMaterial({ color: 0x0a2910, roughness: 0.8 });
       for(let i=0; i<4; i++) {
         const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.6 - (i*0.5), 3.5, 8), leaveMat);
@@ -170,11 +169,10 @@
       scene.add(tree);
     }
 
-    // จัดเต็มสร้าง 600 ต้น
     for (let i = 0; i < 600; i++) {
       let x = (Math.random() - 0.5) * 360;
       let z = (Math.random() - 0.5) * 360;
-      if (Math.abs(x) < 12 && Math.abs(z) < 12) continue; // เว้นจุดเกิด
+      if (Math.abs(x) < 12 && Math.abs(z) < 12) continue; 
       createTree(x, z);
     }
 
@@ -200,11 +198,10 @@
 
     for(let i=0; i<enemyCount; i++) spawnEnemy();
 
-    // --- 8. 🔥 ระบบควบคุม MULTI-TOUCH แบบแยกนิ้วอิสระ (แก้ปัญหาวิ่งหันจอไม่ได้) ---
+    // --- 8. ระบบควบคุม MULTI-TOUCH แบบแยกนิ้วอิสระ ---
     let moveX = 0, moveZ = 0;
     let yaw = 0, pitch = 0;
     
-    // ตัวแปรล็อก ID นิ้วมือ
     let joystickTouchId = null;
     let lookTouchId = null;
     let lastTouchX = 0, lastTouchY = 0;
@@ -216,18 +213,13 @@
     const centerY = rect.top + rect.height / 2;
     const maxRadius = 35;
 
-    // ระบบตรวจจับการแตะสัมผัสหน้าจอแท็บเล็ต
     window.addEventListener('touchstart', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
-        
-        // ถ้านิ้วกดโดนโซนจอยสติ๊กซ้ายล่าง
         if (touch.clientX < window.innerWidth / 2 && touch.clientY > window.innerHeight / 2 && joystickTouchId === null) {
           joystickTouchId = touch.identifier;
           updateJoystick(touch);
-        } 
-        // ถ้านิ้วกดฝั่งขวาหน้าจอเอาไว้หันมุมกล้อง
-        else if (lookTouchId === null) {
+        } else if (lookTouchId === null) {
           lookTouchId = touch.identifier;
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
@@ -238,19 +230,16 @@
     window.addEventListener('touchmove', (e) => {
       for (let i = 0; i < e.touches.length; i++) {
         const touch = e.touches[i];
-        
-        // ขยับจอยสติ๊กเดิน
         if (touch.identifier === joystickTouchId) {
           updateJoystick(touch);
         }
-        // ขยับมุมมองสายตาหันมองรอบตัว
         if (touch.identifier === lookTouchId) {
           const deltaX = touch.clientX - lastTouchX;
           const deltaY = touch.clientY - lastTouchY;
 
           yaw -= deltaX * 0.005;
           pitch -= deltaY * 0.005;
-          pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, pitch)); // ล็อกก้มเงย
+          pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, pitch)); // เพิ่มระยะเงยหน้าขึ้นฟ้าก้มมองพื้น
 
           lastTouchX = touch.clientX;
           lastTouchY = touch.clientY;
@@ -261,7 +250,6 @@
     window.addEventListener('touchend', (e) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
-        
         if (touch.identifier === joystickTouchId) {
           joystickTouchId = null;
           stick.style.transform = 'translate(0px, 0px)';
@@ -296,7 +284,7 @@
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
 
-      // บังคับทิศทางการเคลื่อนที่ตามสายตาผู้เล่น
+      // เดินตามสายตา
       if (moveX !== 0 || moveZ !== 0) {
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -307,28 +295,30 @@
 
       camera.position.copy(playerPosition);
 
-      // คำนวณทิศทางการหันหน้า
+      // คำนวณเวกเตอร์สายตา (หันซ้ายขวา ก้มเงย)
       const target = new THREE.Vector3(0, 0, -1);
       target.applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
       target.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
       const lookDirection = target.clone().normalize();
-      target.add(camera.position);
-      camera.lookAt(target);
+      
+      // จุดที่ตากำลังมองไป
+      const lookTarget = camera.position.clone().add(lookDirection);
+      camera.lookAt(lookTarget);
 
-      // ไฟฉายส่องตามกล้อง
+      // 🔥 แก้ไขระบบไฟฉาย: ให้ไฟฉายตั้งต้นที่ตา และส่องไปที่จุดที่มองอยู่เป๊ะๆ (รองรับการก้มเงยสมบูรณ์แบบ)
       flashlight.position.copy(camera.position);
-      flashlight.target.position.copy(target);
+      flashlight.target.position.copy(camera.position.clone().add(lookDirection.clone().multiplyScalar(10)));
 
-      // จัดสมดุลล็อกพิกัดขวานให้อยู่ขวาหน้าตรงสายตาพอดี (แก้อาการเบี้ยวขัดตา)
+      // ล็อกตำแหน่งขวานให้อยู่ขวาหน้าตรงสายตาพอดี
       const axePos = camera.position.clone()
-        .add(lookDirection.clone().multiplyScalar(0.5)) // ยื่นไปข้างหน้ากล้องเล็กน้อย
-        .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25)) // ขยับมุมมองลงล่าง
-        .add(new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(0.2));  // เยื้องขวาเล็กน้อย
+        .add(lookDirection.clone().multiplyScalar(0.5)) 
+        .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25)) 
+        .add(new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(0.2));  
       
       axeGroup.position.copy(axePos);
       axeGroup.rotation.set(pitch, yaw, 0);
 
-      // อนิเมชันขวานขยับตามแรงเดินสั่นแบบเนียนๆ
+      // ขวานสั่นเวลาเดิน
       if(moveX !== 0 || moveZ !== 0) {
         axeGroup.position.y += Math.sin(clock.getElapsedTime() * 12) * 0.008;
         axeGroup.position.x += Math.cos(clock.getElapsedTime() * 6) * 0.004;
@@ -337,13 +327,11 @@
       // ระบบ AI บล็อกแดงวิ่งไล่กวด
       enemies.forEach(enemy => {
         const dist = enemy.position.distanceTo(playerPosition);
-        if(dist < 70) { // รู้ตัวไวกว่าเดิม
+        if(dist < 70) { 
           const direction = new THREE.Vector3().subVectors(playerPosition, enemy.position);
           direction.y = 0;
           direction.normalize();
           enemy.position.addScaledVector(direction, enemySpeed * delta);
-          
-          // เด้งดึ๋งๆ เหมือนลูกบอลผีสิง
           enemy.position.y = 1.3 + Math.abs(Math.sin(clock.getElapsedTime() * 6 + enemy.id)) * 0.8;
         }
       });
