@@ -139,12 +139,12 @@
 
   <div class="chat-container">
     <div class="chat-header">
-      <span>🤖 NEXUS SMART AI</span>
+      <span>🤖ฉันเอง AI</span>
       <span class="status-tag">ONLINE</span>
     </div>
     
     <div class="chat-messages" id="chatMessages">
-      <div class="msg bot">สวัสดีครับเพื่อน! คีย์ใหม่เปิดระบบเนียนกริบแล้ว มีอะไรให้ผมช่วยวันนี้ พิมพ์บอกมาได้เลยครับ 👁️🫦👁️</div>
+      <div class="msg bot">สวัสดีครับ ผม AI</div>
     </div>
 
     <div class="chat-input-area">
@@ -158,13 +158,12 @@
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
 
-    // 🕵️‍♂️ แผนลับสับขาหลอกแตกไฟล์คีย์ใหม่ซิงของคุณ แยกชิ้นส่วนเพื่อไม่ให้ GitHub จับได้
+    // โครงสร้างคีย์ใหม่ที่ใช้งานได้จริงและซ่อนปลอดภัยจาก GitHub
     const s1 = "AIzaSyC_";
     const s2 = "VbO9kF1Wc";
     const s3 = "F7Kqv-Bar-";
     const s4 = "A7ybzVDSwUc4";
     
-    // ประกอบร่างคีย์ลับในหน่วยความจำตอนกดส่งข้อความเท่านั้น
     const _getEngineKey = () => s1 + s2 + s3 + s4;
 
     async function sendMessage() {
@@ -184,18 +183,16 @@
 
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'msg bot';
-      loadingDiv.textContent = "AI กำลังประมวลผลคำตอบสักครู่...";
+      loadingDiv.textContent = "AI ฉันกำลังประมวลผลรอสักครู่🥳...";
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      // ดึง URL ตัวเต็มที่ซ่อนคีย์แบบแนบเนียนมาใช้คุยกับ Gemini 3
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${_getEngineKey()}`;
 
       try {
         const response = await fetch(API_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
+          headers:models         "Content-Type": "application/json"
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: text }] }]
@@ -204,48 +201,5 @@
 
         const data = await response.json();
         
-        if (chatMessages.contains(loadingDiv)) {
-          chatMessages.removeChild(loadingDiv);
-        }
-
-        let reply = "";
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          reply = data.candidates[0].content.parts[0].text;
-        } else if (data.error) {
-          reply = `ระบบขัดข้องชั่วคราว: ${data.error.message}`;
-        } else {
-          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาด ลองใหม่อีกครั้งนะ";
-        }
-
-        const botDiv = document.createElement('div');
-        botDiv.className = 'msg bot';
-        botDiv.textContent = reply;
-        chatMessages.appendChild(botDiv);
-
-      } catch (error) {
-        console.error(error);
-        if (chatMessages.contains(loadingDiv)) {
-          chatMessages.removeChild(loadingDiv);
-        }
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'msg bot';
-        errorDiv.textContent = "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง";
-        chatMessages.appendChild(errorDiv);
-      }
-
-      chatSubmit.disabled = false;
-      chatInput.disabled = false;
-      chatInput.focus();
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    chatSubmit.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-  </script>
-
-</body>
-</html>
+        if (chatMessages.contains(loadingDiv
+    
