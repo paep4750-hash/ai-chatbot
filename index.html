@@ -139,12 +139,12 @@
 
   <div class="chat-container">
     <div class="chat-header">
-      <span>🤖 NEXUS SMART AI (GEMINI)</span>
+      <span>🤖 NEXUS SMART AI (GEMINI 3)</span>
       <span class="status-tag">ONLINE</span>
     </div>
     
     <div class="chat-messages" id="chatMessages">
-      <div class="msg bot">อัปเกรดระบบเรียบร้อย! ตอนนี้ผมเชื่อมต่อเข้ากับสมองกล Google Gemini ของจริงแล้วครับ อยากถามเรื่องอะไร พิมพ์คุยกับผมได้เลยทุกเรื่องบนโลกนี้เพื่อน! 👁️🫦👁️</div>
+      <div class="msg bot">ระบบอัปเกรดโมเดลเป็น Gemini 3 Flash เรียบร้อยแล้ว! คราวนี้เชื่อมต่อสมองกลตรงรุ่นแน่นอน ลองพิมพ์ถามคำถามดูใหม่ได้เลยครับเพื่อน 👁️🫦👁️</div>
     </div>
 
     <div class="chat-input-area">
@@ -158,15 +158,14 @@
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
 
-    // ดึงคีย์ของคุณมาใช้งานโดยตรง ปลอดภัยบน GitHub Pages
     const API_KEY = "AIzaSyAA4p7u--ZTJIkZjJSULEVZ2ynt2wRkRt8"; 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    // เปลี่ยนมาใช้โมเดล gemini-3-flash-preview ให้ตรงกับคีย์แล้ว
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
 
     async function sendMessage() {
       const text = chatInput.value.trim();
       if (text === "") return;
 
-      // แสดงข้อความฝั่งผู้ใช้
       const userDiv = document.createElement('div');
       userDiv.className = 'msg user';
       userDiv.textContent = text;
@@ -175,19 +174,16 @@
       chatInput.value = "";
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      // ปิดปุ่มชั่วคราวระหว่างรอ AI คิด
       chatSubmit.disabled = true;
       chatInput.disabled = true;
 
-      // แสดงสถานะว่ากำลังพิมพ์...
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'msg bot';
-      loadingDiv.textContent = "AI กำลังคิดคำตอบสักครู่...";
+      loadingDiv.textContent = "AI กำลังประมวลผลคำตอบสักครู่...";
       chatMessages.appendChild(loadingDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       try {
-        // ยิงคำขอไปที่เซิร์ฟเวอร์ Google Gemini
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
@@ -200,17 +196,17 @@
 
         const data = await response.json();
         
-        // ลบข้อความกำลังคิดออก
-        chatMessages.removeChild(loadingDiv);
+        if (chatMessages.contains(loadingDiv)) {
+          chatMessages.removeChild(loadingDiv);
+        }
 
         let reply = "";
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           reply = data.candidates[0].content.parts[0].text;
         } else {
-          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาดในการประมวลผล ลองใหม่อีกครั้งนะ";
+          reply = "ขออภัยด้วยครับ ระบบเกิดข้อผิดพลาดในการดึงข้อมูล ลองใหม่อีกครั้งนะ";
         }
 
-        // แสดงข้อความจาก AI ตัวจริง
         const botDiv = document.createElement('div');
         botDiv.className = 'msg bot';
         botDiv.textContent = reply;
@@ -218,14 +214,15 @@
 
       } catch (error) {
         console.error(error);
-        chatMessages.removeChild(loadingDiv);
+        if (chatMessages.contains(loadingDiv)) {
+          chatMessages.removeChild(loadingDiv);
+        }
         const errorDiv = document.createElement('div');
         errorDiv.className = 'msg bot';
-        errorDiv.textContent = "ไม่สามารถเชื่อมต่อกับสมองกล AI ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+        errorDiv.textContent = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ AI ได้ ลองตรวจสอบอินเทอร์เน็ตหรือคีย์อีกครั้งครับ";
         chatMessages.appendChild(errorDiv);
       }
 
-      // เปิดให้พิมพ์ต่อได้
       chatSubmit.disabled = false;
       chatInput.disabled = false;
       chatInput.focus();
