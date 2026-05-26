@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEXUS SURVIVAL - STARLIGHT V4</title>
+  <title>NEXUS SURVIVAL - STARLIGHT V4 (CAMPFIRE WOOD UPDATE)</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0a1128;
+      background-color: #0b153a;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       user-select: none;
       -webkit-user-select: none;
@@ -21,22 +21,22 @@
       position: absolute;
       top: 15px;
       left: 15px;
-      background: rgba(10, 17, 40, 0.85);
+      background: rgba(11, 21, 58, 0.85);
       color: #fff;
       padding: 15px;
       border-radius: 12px;
-      border: 1px solid rgba(0, 240, 255, 0.3);
+      border: 1px solid rgba(0, 240, 255, 0.4);
       pointer-events: none;
       z-index: 10;
-      min-width: 220px;
-      box-shadow: 0 0 10px rgba(0,240,255,0.2);
+      min-width: 240px;
+      box-shadow: 0 0 15px rgba(0,240,255,0.3);
     }
     .status-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
     #wave-text { color: #00f0ff; font-size: 1.2rem; text-shadow: 0 0 5px #00f0ff; }
-    #wood-text { color: #ffb74d; }
+    #wood-text { color: #ffb74d; font-size: 1.1rem; text-shadow: 0 0 5px rgba(255,183,77,0.4); }
     
     /* หลอดเลือด HP */
-    .bar-bg { width: 100%; height: 14px; background: #331111; border-radius: 7px; overflow: hidden; border: 1px solid #ff4444; }
+    .bar-bg { width: 100%; height: 14px; background: #331111; border-radius: 7px; overflow: hidden; border: 1px solid #ff4444; margin-bottom: 5px; }
     #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff3333, #ff7777); transition: width 0.15s; }
     
     /* ข้อความประกาศกลางหน้าจอ */
@@ -102,11 +102,13 @@
   <div id="ui-container">
     <div class="status-row">
       <span id="wave-text">เวฟ 1 / 10</span>
-      <span id="wood-text">🪵 ไม้: 0 / 10</span>
+    </div>
+    <div class="status-row" style="justify-content: flex-start; margin-bottom: 10px;">
+      <span id="wood-text">🪵 ฟืนในตัว: 0 / 10</span>
     </div>
     <div style="margin-bottom: 5px; font-size: 0.85rem; color:#ccc;">HP ของผู้เล่น:</div>
     <div class="bar-bg"><div id="hp-bar"></div></div>
-    <div style="font-size: 0.75rem; margin-top: 8px; color: #a6d5ff;">*จิ้มจอขวาฟันขวาน | สับต้นไม้เพื่อดรอปไม้ได้!*</div>
+    <div style="font-size: 0.75rem; margin-top: 8px; color: #a6d5ff;">*สับต้นไม้เพื่อรับฟืน นำมาเติมกองไฟเพื่อผ่านเวฟ!*</div>
   </div>
 
   <div id="msg-overlay"></div>
@@ -118,13 +120,13 @@
     // --- 1. ระบบข้อมูลสถานะภายในเกม ---
     let hp = 100;
     let currentWave = 1;
-    let woodCollected = 0;
+    let woodCollected = 0; // 🪵 จำนวนฟืนที่เก็บได้
     let isGameOver = false;
 
-    // --- 2. การตั้งค่าฉากและแสงไฟ (ท้องฟ้าดวงดาว แสงนวลตาคืนเดือนหงาย) ---
+    // --- 2. การตั้งค่าฉากและแสงไฟ (คืนที่มืดน้อยลง + หมอกจางเห็นชัด) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b1e); 
-    scene.fog = new THREE.FogExp2(0x060b1e, 0.025); 
+    scene.background = new THREE.Color(0x0b153a); // ท้องฟ้าสีน้ำเงินสว่างนวลตา
+    scene.fog = new THREE.FogExp2(0x0b153a, 0.012); // ลดหมอกลงให้จางลง (0.012) มองเห็นได้ไกลขึ้นชัดเจน
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -132,35 +134,40 @@
     renderer.shadowMap.enabled = true;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45); 
+    // ปรับเพิ่มความสว่างโดยรอบ (Ambient Light)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
     scene.add(ambientLight);
 
-    const moonLight = new THREE.DirectionalLight(0x8faaff, 0.4);
+    // แสงจันทร์ส่องสว่างช่วยนำทางในป่า
+    const moonLight = new THREE.DirectionalLight(0xaac0ff, 0.55);
     moonLight.position.set(30, 60, 20);
     scene.add(moonLight);
 
-    const flashlight = new THREE.SpotLight(0xfffdf0, 4.0, 80, Math.PI / 4.5, 0.5, 0.5);
+    // ไฟฉายส่องสว่างส่วนตัวของผู้เล่น
+    const flashlight = new THREE.SpotLight(0xfffdf0, 4.0, 90, Math.PI / 4.5, 0.5, 0.5);
     scene.add(flashlight);
     scene.add(flashlight.target);
 
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x16281b, roughness: 0.9 }));
+    // พื้นหญ้าในป่า
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x1a3322, roughness: 0.85 }));
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
     const playerPosition = new THREE.Vector3(0, 2, 15);
     camera.position.copy(playerPosition);
 
-    // --- 3. ระบบสร้างกลุ่มดวงดาวระยิบระยับบนฟ้า (Stars System) ---
+    // --- 3. ระบบดาวบนท้องฟ้าแบบสว่างชัดเจน (Bright Stars System) ---
     const starsGeo = new THREE.BufferGeometry();
-    const starsCount = 500;
+    const starsCount = 650; // เพิ่มจำนวนดวงดาวให้สวยงามหนาตา
     const starsPos = new Float32Array(starsCount * 3);
     for(let i=0; i<starsCount*3; i+=3) {
       starsPos[i] = (Math.random() - 0.5) * 400;
-      starsPos[i+1] = 40 + Math.random() * 60; 
+      starsPos[i+1] = 45 + Math.random() * 65; 
       starsPos[i+2] = (Math.random() - 0.5) * 400;
     }
     starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.4, transparent: true });
+    // ตั้งค่าดาวสีขาวนวล สว่างเด่นชัดเจน
+    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, transparent: true, opacity: 0.9 });
     const starField = new THREE.Points(starsGeo, starsMat);
     scene.add(starField);
 
@@ -175,15 +182,15 @@
     }
     scene.add(campfireGroup);
 
-    const campfireLight = new THREE.PointLight(0xff6600, 4, 32);
+    const campfireLight = new THREE.PointLight(0xff7700, 5, 35);
     campfireLight.position.set(0, 1, 0);
     scene.add(campfireLight);
 
-    const fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 8), new THREE.MeshBasicMaterial({ color: 0xff4500, wireframe: true }));
+    const fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 8), new THREE.MeshBasicMaterial({ color: 0xff5500, wireframe: true }));
     fireMesh.position.set(0, 0.6, 0);
     scene.add(fireMesh);
 
-    // --- 5. คลังข้อมูลระบบจัดการต้นไม้ และขอนไม้ที่ดรอปพื้น ---
+    // --- 5. คลังข้อมูลระบบจัดการต้นไม้ และขอนไม้/ฟืนที่ดรอปบนพื้น ---
     const trees = [];
     const woodLogs = [];
 
@@ -195,7 +202,7 @@
       trunk.position.y = 2.5;
       treeGroup.add(trunk);
 
-      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x0c2d15, roughness: 0.8 });
+      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x0f3d1d, roughness: 0.8 });
       for(let i=0; i<4; i++) {
         const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5 - (i*0.4), 3.5, 8), leaveMat);
         leaves.position.y = 4.0 + (i * 1.5);
@@ -212,8 +219,9 @@
       createTree((Math.random() - 0.5) * 380, (Math.random() - 0.5) * 380);
     }
 
+    // ฟังก์ชันสร้างท่อนฟืนตกลงบนพื้นหลังจากสับต้นไม้
     function spawnWoodLog(x, z) {
-      const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.75, 8), new THREE.MeshStandardMaterial({ color: 0x9c6633 }));
+      const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.75, 8), new THREE.MeshStandardMaterial({ color: 0xb3773b }));
       wood.rotation.z = Math.PI / 2;
       wood.position.set(x, 0.1, z);
       scene.add(wood);
@@ -241,7 +249,7 @@
         isGameOver = true; return;
       }
       document.getElementById('wave-text').innerText = `เวฟ ${waveNum} / 10`;
-      showOverlay(`🌌 เวฟ ${waveNum} - ตัดต้นไม้เก็บไม้ให้ครบ!`, "#ffea00");
+      showOverlay(`🌌 เวฟ ${waveNum} - สับต้นไม้เก็บฟืนไปเติมกองไฟให้เต็ม!`, "#ffea00");
 
       const count = 6 + (waveNum * 3);
       for(let i=0; i<count; i++) {
@@ -406,17 +414,20 @@
       flashlight.target.position.copy(camera.position.clone().add(lookDirection.clone().multiplyScalar(10)));
       fireMesh.scale.set(1 + Math.sin(time*10)*0.1, 1 + Math.cos(time*12)*0.1, 1);
 
+      // 🪵 ระบบเดินชนท่อนฟืนเพื่อนำไปเติมกองไฟเซฟโซน
       for(let i = woodLogs.length - 1; i >= 0; i--) {
         if(playerPosition.distanceTo(woodLogs[i].position) < 2.5) {
           scene.remove(woodLogs[i]);
           woodLogs.splice(i, 1);
-          woodCollected++;
           
-          document.getElementById('wood-text').innerText = `🪵 ไม้: ${woodCollected} / 10`;
+          woodCollected++; // เก็บฟืนสำเร็จ
+          
+          document.getElementById('wood-text').innerText = `🪵 ฟืนในตัว: ${woodCollected} / 10`;
 
+          // เมื่อเก็บฟืนครบ 10 ชิ้นเพื่อเอาไปเติมกองไฟสำเร็จ -> ขึ้นเวฟใหม่ทันที
           if(woodCollected >= 10) {
             woodCollected = 0;
-            document.getElementById('wood-text').innerText = `🪵 ไม้: 0 / 10`;
+            document.getElementById('wood-text').innerText = `🪵 ฟืนในตัว: 0 / 10`;
             currentWave++;
             enemies.forEach(e => scene.remove(e));
             enemies.length = 0;
