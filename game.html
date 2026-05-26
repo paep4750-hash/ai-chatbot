@@ -16,7 +16,7 @@
     }
     #canvas-container { width: 100vw; height: 100vh; }
     
-    /* 📊 UI หน้าจอ */
+    /* 📊 UI หน้าจอแสดงผลสถานะ */
     #ui-container {
       position: absolute;
       top: 15px;
@@ -39,6 +39,7 @@
     .bar-bg { width: 100%; height: 14px; background: #331111; border-radius: 7px; overflow: hidden; border: 1px solid #ff4444; }
     #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff3333, #ff7777); transition: width 0.15s; }
     
+    /* ข้อความประกาศกลางหน้าจอ */
     #msg-overlay {
       position: absolute;
       top: 25%;
@@ -54,6 +55,7 @@
       display: none;
     }
 
+    /* เป้าเล็งตรงกลางหน้าจอ */
     #crosshair {
       position: absolute;
       top: 50%;
@@ -68,6 +70,7 @@
       box-shadow: 0 0 6px #00f0ff;
     }
 
+    /* โซนปุ่มควบคุม จอยสติ๊กซ้าย */
     #joystick-zone {
       position: absolute;
       bottom: 40px;
@@ -98,7 +101,7 @@
 
   <div id="ui-container">
     <div class="status-row">
-      <span id="wave-text">WAVE 1 / 10</span>
+      <span id="wave-text">เวฟ 1 / 10</span>
       <span id="wood-text">🪵 ไม้: 0 / 10</span>
     </div>
     <div style="margin-bottom: 5px; font-size: 0.85rem; color:#ccc;">HP ของผู้เล่น:</div>
@@ -109,20 +112,19 @@
   <div id="msg-overlay"></div>
   <div id="crosshair"></div>
   <div id="canvas-container"></div>
-
   <div id="joystick-zone"><div id="joystick-stick"></div></div>
 
-  <script>
-    // --- 1. GAME SYSTEMS ---
+    <script>
+    // --- 1. ระบบข้อมูลสถานะภายในเกม ---
     let hp = 100;
     let currentWave = 1;
     let woodCollected = 0;
     let isGameOver = false;
 
-    // --- 2. SCENE & LIGHTING (ท้องฟ้าดวงดาว แสงนวลตา) ---
+    // --- 2. การตั้งค่าฉากและแสงไฟ (ท้องฟ้าดวงดาว แสงนวลตาคืนเดือนหงาย) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b1e); // สีน้ำเงินค่ำคืนมิติดาว
-    scene.fog = new THREE.FogExp2(0x060b1e, 0.025); // หมอกจางๆ โทนเย็น
+    scene.background = new THREE.Color(0x060b1e); 
+    scene.fog = new THREE.FogExp2(0x060b1e, 0.025); 
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -130,20 +132,17 @@
     renderer.shadowMap.enabled = true;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    // แสงนวลคืนเดือนหงาย ไม่มืดเกินไป
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.45); 
-    scene.add(ambientLight5);
+    scene.add(ambientLight);
 
     const moonLight = new THREE.DirectionalLight(0x8faaff, 0.4);
     moonLight.position.set(30, 60, 20);
     scene.add(moonLight);
 
-    // ไฟฉายส่องสว่างติดตัวผู้เล่น
     const flashlight = new THREE.SpotLight(0xfffdf0, 4.0, 80, Math.PI / 4.5, 0.5, 0.5);
     scene.add(flashlight);
     scene.add(flashlight.target);
 
-    // พื้นป่าหญ้าสีเขียวเข้มรับแสงจันทร์
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x16281b, roughness: 0.9 }));
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
@@ -151,13 +150,13 @@
     const playerPosition = new THREE.Vector3(0, 2, 15);
     camera.position.copy(playerPosition);
 
-    // --- 3. ระบบเสกดวงดาวบนท้องฟ้า (Stars) ---
+    // --- 3. ระบบสร้างกลุ่มดวงดาวระยิบระยับบนฟ้า (Stars System) ---
     const starsGeo = new THREE.BufferGeometry();
     const starsCount = 500;
     const starsPos = new Float32Array(starsCount * 3);
     for(let i=0; i<starsCount*3; i+=3) {
       starsPos[i] = (Math.random() - 0.5) * 400;
-      starsPos[i+1] = 40 + Math.random() * 60; // ลอยอยู่บนฟ้า
+      starsPos[i+1] = 40 + Math.random() * 60; 
       starsPos[i+2] = (Math.random() - 0.5) * 400;
     }
     starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
@@ -165,7 +164,7 @@
     const starField = new THREE.Points(starsGeo, starsMat);
     scene.add(starField);
 
-    // --- 4. แคมป์ไฟปลอดภัยตรงกลาง ---
+    // --- 4. สร้างกองไฟเซฟโซนตรงกลางแผนที่ (Campfire) ---
     const campfireGroup = new THREE.Group();
     campfireGroup.position.set(0, 0, 0);
     const logMat = new THREE.MeshStandardMaterial({ color: 0x422517 });
@@ -184,7 +183,7 @@
     fireMesh.position.set(0, 0.6, 0);
     scene.add(fireMesh);
 
-    // --- 5. คลังข้อมูลต้นไม้ และเศษไม้ดรอป ---
+    // --- 5. คลังข้อมูลระบบจัดการต้นไม้ และขอนไม้ที่ดรอปพื้น ---
     const trees = [];
     const woodLogs = [];
 
@@ -203,8 +202,6 @@
         treeGroup.add(leaves);
       }
       treeGroup.position.set(x, 0, z);
-      
-      // เก็บค่ากล่องชนสิ่งกีดขวาง (Bounding Box) สับเปลี่ยนสถานะชนได้
       treeGroup.userData = { radius: 1.2, isTree: true };
       
       scene.add(treeGroup);
@@ -215,7 +212,6 @@
       createTree((Math.random() - 0.5) * 380, (Math.random() - 0.5) * 380);
     }
 
-    // ฟังก์ชันสำหรับเสกดรอปไม้เวลาตัดต้นไม้สำเร็จ 🪵
     function spawnWoodLog(x, z) {
       const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.75, 8), new THREE.MeshStandardMaterial({ color: 0x9c6633 }));
       wood.rotation.z = Math.PI / 2;
@@ -224,29 +220,28 @@
       woodLogs.push(wood);
     }
 
-    // --- 6. ดีไซน์กรอบขวาน (AXE) ติดตาขวาล่าง ---
+    // --- 6. ดีไซน์โมเดลขวาน (AXE) ติดหน้าจอฝั่งขวา ---
     const axeGroup = new THREE.Group();
     const handleMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.85), new THREE.MeshStandardMaterial({ color: 0x6e4726 }));
     handleMesh.rotation.x = Math.PI / 2;
     axeGroup.add(handleMesh);
 
-    // หัวขวานเงางาม คมเหล็กชัดเจน
     const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.24), new THREE.MeshStandardMaterial({ color: 0xb0c4de, metalness: 0.85, roughness: 0.15 }));
     bladeMesh.position.set(0, 0.07, -0.32);
     axeGroup.add(bladeMesh);
     scene.add(axeGroup);
 
-    // --- 7. กองทัพมอนสเตอร์บล็อกกลมสีแดง (ENEMIES) ---
+    // --- 7. กองทัพมอนสเตอร์บล็อกกลมสีแดง (Enemies System) ---
     const enemies = [];
-    const campfireRadius = 14;
+    const campfireRadius = 14; 
 
     function spawnWave(waveNum) {
       if(waveNum > 10) {
         showOverlay("🎉 ยอดเยี่ยม! คุณรอดพ้นป่าดงดิบครบ 10 เวฟแล้ว!", "#00f0ff");
         isGameOver = true; return;
       }
-      document.getElementById('wave-text').innerText = `WAVE ${waveNum} / 10`;
-      showOverlay(`🌌 WAVE ${waveNum} - เก็บไม้ให้ครบ!`, "#ffea00");
+      document.getElementById('wave-text').innerText = `เวฟ ${waveNum} / 10`;
+      showOverlay(`🌌 เวฟ ${waveNum} - ตัดต้นไม้เก็บไม้ให้ครบ!`, "#ffea00");
 
       const count = 6 + (waveNum * 3);
       for(let i=0; i<count; i++) {
@@ -262,14 +257,14 @@
     }
     setTimeout(() => { spawnWave(currentWave); }, 1500);
 
-    // --- 8. ระบบปุ่มควบคุม MULTI-TOUCH และอนิเมชันฟันแบบใหม่ (Epic Slash) ---
+    // --- 8. ระบบควบคุมปุ่มสัมผัสหน้าจอ (Multi-Touch) และท่าอนิเมชันฟันกวาดกว้าง ---
     let moveX = 0, moveZ = 0;
     let yaw = 0, pitch = 0;
     let joystickTouchId = null, lookTouchId = null;
     let lastTouchX = 0, lastTouchY = 0;
     
     let isAttacking = false;
-    let attackProgress = 0; // คุมเฟรมการเหวี่ยง
+    let attackProgress = 0; 
 
     const stick = document.getElementById('joystick-stick');
     const zone = document.getElementById('joystick-zone');
@@ -289,7 +284,6 @@
           lookTouchId = touch.identifier;
           lastTouchX = touch.clientX; lastTouchY = touch.clientY;
           
-          // 🔥 ทริกเกอร์ฟันขวานแบบใหม่ ท่าเหวี่ยงฟาดกวาดเฉียง!
           if(!isAttacking && touch.clientX > window.innerWidth / 3) {
             isAttacking = true;
             attackProgress = 0;
@@ -336,12 +330,10 @@
       moveX = deltaX / maxRadius; moveZ = -deltaY / maxRadius;
     }
 
-    // 🔥 ระบบคำนวณการใช้ขวานสับมอนสเตอร์ และ "ตัดต้นไม้"
     function performAxeSlash() {
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
       
-      // 1. ตรวจจับการโจมตีใส่ มอนสเตอร์สีแดง (ระยะ 6.5 เมตร)
       const hitEnemies = raycaster.intersectObjects(enemies);
       if(hitEnemies.length > 0 && hitEnemies[0].distance < 6.5) {
         const targetMonster = hitEnemies[0].object;
@@ -350,24 +342,19 @@
           scene.remove(targetMonster);
           enemies.splice(idx, 1);
         }
-        return; // ฟันโดนมอนแล้วหยุดตรวจจับอย่างอื่น
+        return; 
       }
 
-      // 2. ตรวจจับการ "สับตัดต้นไม้" 🌲🪓
-      // ดึงออบเจกต์ย่อยทั้งหมดในกลุ่ม Group ต้นไม้มาเช็คระยะชนลำต้น
       const allTrunks = [];
-      trees.forEach(t => allTrunks.push(t.children[0])); // ดึงกระบอกลำต้นอันแรกออกมาเช็ค
+      trees.forEach(t => allTrunks.push(t.children[0])); 
       
       const hitTrees = raycaster.intersectObjects(allTrunks);
       if(hitTrees.length > 0 && hitTrees[0].distance < 6.5) {
         const targetTrunk = hitTrees[0].object;
-        const targetGroup = targetTrunk.parent; // หาตัวพ่อกลุ่มต้นไม้
+        const targetGroup = targetTrunk.parent; 
         const idx = trees.indexOf(targetGroup);
         if(idx > -1) {
-          // เสกดรอปเศษไม้ลงพื้นตรงจุดที่ต้นไม้ล้ม
           spawnWoodLog(targetGroup.position.x, targetGroup.position.z);
-          
-          // ลบต้นไม้ออกจากแมพ
           scene.remove(targetGroup);
           trees.splice(idx, 1);
         }
@@ -381,7 +368,7 @@
       setTimeout(() => { overlay.style.display = 'none'; }, 2200);
     }
 
-    // --- 9. GAME LOOP ---
+    // --- 9. ระบบประมวลผลลูปของเกมต่อเนื่อง (Game Loop) ---
     const clock = new THREE.Clock();
     const playerSpeed = 8.0;
     const enemySpeed = 4.6;
@@ -392,8 +379,6 @@
 
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
-
-      // 1. เก็บพิกัดเก่าของผู้เล่นไว้เผื่อถอยกลับ (แก้อาการเดินทะลุต้นไม้)
       const oldPlayerPos = playerPosition.clone();
 
       if (moveX !== 0 || moveZ !== 0) {
@@ -403,28 +388,24 @@
         playerPosition.addScaledVector(moveDirection, playerSpeed * delta);
       }
 
-      // 🛑 ตรวจจับขอบเขตชนต้นไม้ของผู้เล่น (Player vs Trees Collision)
       for(let i=0; i<trees.length; i++) {
         const treePos = trees[i].position;
         const dist = playerPosition.distanceTo(new THREE.Vector3(treePos.x, playerPosition.y, treePos.z));
         if(dist < trees[i].userData.radius + 0.6) {
-          playerPosition.copy(oldPlayerPos); // เดินชนแล้วเด้งกลับตำแหน่งเดิม เดินทะลุไม่ได้
+          playerPosition.copy(oldPlayerPos); 
           break;
         }
       }
       camera.position.copy(playerPosition);
 
-      // อัปเดตมุมกล้องหัน
       const target = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
       const lookDirection = target.clone().normalize();
       camera.lookAt(camera.position.clone().add(lookDirection));
 
-      // ล็อกไฟฉายหันตามเป๊ะๆ
       flashlight.position.copy(camera.position);
       flashlight.target.position.copy(camera.position.clone().add(lookDirection.clone().multiplyScalar(10)));
       fireMesh.scale.set(1 + Math.sin(time*10)*0.1, 1 + Math.cos(time*12)*0.1, 1);
 
-      // 🪵 ลอจิกการเดินชน "เก็บเศษไม้สีน้ำตาลที่ดรอปพื้น"
       for(let i = woodLogs.length - 1; i >= 0; i--) {
         if(playerPosition.distanceTo(woodLogs[i].position) < 2.5) {
           scene.remove(woodLogs[i]);
@@ -433,12 +414,10 @@
           
           document.getElementById('wood-text').innerText = `🪵 ไม้: ${woodCollected} / 10`;
 
-          // 🔥 เงื่อนไขเด็ด: เก็บครบ 10 ชิ้น ขึ้นเวฟถัดไปทันที!
           if(woodCollected >= 10) {
             woodCollected = 0;
             document.getElementById('wood-text').innerText = `🪵 ไม้: 0 / 10`;
             currentWave++;
-            // เคลียร์มอนสเตอร์เวฟเก่าทิ้งให้หมดฉากก่อนขึ้นเวฟใหม่
             enemies.forEach(e => scene.remove(e));
             enemies.length = 0;
             spawnWave(currentWave);
@@ -446,7 +425,6 @@
         }
       }
 
-      // 🪓 อนิเมชันเหวี่ยงขวานโค้งสะใจแบบใหม่ (Epic Arc Slash)
       const baseAxePos = camera.position.clone()
         .add(lookDirection.clone().multiplyScalar(0.45))
         .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25))
@@ -455,18 +433,16 @@
       axeGroup.position.copy(baseAxePos);
 
       if (isAttacking) {
-        attackProgress += delta * 14; // ความเร็วเหวี่ยงฟันสะใจแรงๆ
-        // หมอกบิดแกน X และ Y ขวานจะสับโค้งจากขวาไปซ้ายกว้างๆ โคตรเท่!
+        attackProgress += delta * 14; 
         axeGroup.rotation.set(pitch + Math.sin(attackProgress)*0.4, yaw - Math.sin(attackProgress)*1.2, Math.cos(attackProgress)*0.5);
         if(attackProgress > Math.PI) { isAttacking = false; }
       } else {
         axeGroup.rotation.set(pitch, yaw, 0);
-        if(moveX !== 0 || moveZ !== 0) { // สั่นเบาๆ เวลาเดิน
+        if(moveX !== 0 || moveZ !== 0) { 
           axeGroup.position.y += Math.sin(time * 12) * 0.005;
         }
       }
 
-      // 🔴 AI บล็อกกลมแดง (แก้ให้ติดขวางสิ่งกีดขวาง + ติดต้นไม้)
       const currentTimeMs = Date.now();
       enemies.forEach(enemy => {
         const distToPlayer = enemy.position.distanceTo(playerPosition);
@@ -474,38 +450,53 @@
 
         if (distToCampfire > campfireRadius) {
           if (distToPlayer < 75) {
-            const oldEnemyPos = enemy.position.clone(); // จำพิกัดเก่ามอนสเตอร์ไว้
+            const oldEnemyPos = enemy.position.clone(); 
             
             const dir = new THREE.Vector3().subVectors(playerPosition, enemy.position);
             dir.y = 0; dir.normalize();
             enemy.position.addScaledVector(dir, enemySpeed * delta);
             enemy.position.y = 1.3 + Math.abs(Math.sin(time * 6 + enemy.id)) * 0.6;
 
-            // 🛑 ลอจิกสำคัญ: มอนสเตอร์เดินชนต้นไม้แล้วจะติดขัด (Enemy vs Trees Collision)
             for(let t=0; t<trees.length; t++) {
               const treePos = trees[t].position;
               const distTree = enemy.position.distanceTo(new THREE.Vector3(treePos.x, enemy.position.y, treePos.z));
               if(distTree < trees[t].userData.radius + enemy.userData.radius) {
-                enemy.position.copy(oldEnemyPos); // ชนต้นไม้ปุ๊บ บล็อกแดงจะเด้งถอยหลังติดอยู่ตรงนั้น เดินทะลุไม่ได้แล้ว!
+                enemy.position.copy(oldEnemyPos); 
                 break;
               }
             }
           }
         } else {
-          // ผลักออกจากแคมป์ไฟ
           const pushDir = new THREE.Vector3().subVectors(enemy.position, new THREE.Vector3(0, 1.2, 0)).setLength(1).multiplyScalar(enemySpeed * 1.5 * delta);
           enemy.position.add(pushDir);
         }
 
-        // ⚔️ มอนสเตอร์ดาเมจ 50 (คูลดาวน์ 2 วินาที)
         if (distToPlayer < 2.4) {
           if (currentTimeMs - enemy.userData.lastAttackTime > 2000) {
             hp -= 50;
-            enemy.userData.lastAttackTime = currentTimeMs;
+            enemy.userData.lastAttackTime = currentTimeMs; 
             document.getElementById('hp-bar').style.width = `${hp}%`;
             
             if (hp <= 0 && !isGameOver) {
               showOverlay("💀 GAME OVER! คุณพลาดท่าโดนบล็อกแดงขย้ำ!", "#ff3333");
               isGameOver = true;
             } else {
-             
+              showOverlay("💥 อั่ก! โดนชนดาเมจ 50!", "#ff3b3b");
+            }
+          }
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
