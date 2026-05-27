@@ -96,13 +96,11 @@
   <div id="crosshair"></div>
   <div id="canvas-container"></div>
   <div id="joystick-zone"><div id="joystick-stick"></div></div>
-
-    <script>
+  <script>
     // --- 1. ตั้งค่าฉากหลัง ท้องฟ้าสีสดใส ไร้หมอกมืด ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x3399ff); // ฟ้าสดใสสไตล์ด่านแรกรุ่นเก๋า
     
-    // บรรยากาศเคลียร์ ไม่มีหมอกหนามาบังทางเดิน
     const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -127,7 +125,7 @@
       // ส่วนบน: พื้นหญ้าสีเขียวสด
       const grassGeo = new THREE.BoxGeometry(w, 0.3, d);
       const grassMat = new THREE.MeshStandardMaterial({ color: 0x00cc44, roughness: 0.7 });
-      const grass = new THREE.Mesh(grassGeo, grass);
+      const grass = new THREE.Mesh(grassGeo, grassMat); // แก้ไขบั๊กตรงนี้แล้วจ้า!
       grass.position.y = h / 2;
       blockGroup.add(grass);
 
@@ -282,7 +280,7 @@
 
     // --- 7. ลูปขับเคลื่อนแอนิเมชันและระบบเกม (Game Loop) ---
     const clock = new THREE.Clock();
-    const playerSpeed = 11.0; // โซนิคต้องเดินเร็วกว่าเก่านิดนึง!
+    const playerSpeed = 11.0; 
     let ringCount = 0;
 
     function animate() {
@@ -313,7 +311,6 @@
           scene.remove(ring);
           rings.splice(idx, 1);
           ringCount++;
-          // อัปเดตข้อความบน UI หน้าจอให้เห็น
           document.getElementById('ring-text').innerText = `✨ RINGS: ${String(ringCount).padStart(3, '0')}`;
         }
       });
