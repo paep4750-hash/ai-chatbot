@@ -3,57 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEXUS SURVIVAL - STARLIGHT V4 (CAMPFIRE WOOD UPDATE)</title>
+  <title>SONIC 3 A.I.R - THREE.JS EDITION</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0b153a;
+      background-color: #2288dd;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       user-select: none;
       -webkit-user-select: none;
     }
     #canvas-container { width: 100vw; height: 100vh; }
     
-    /* 📊 UI หน้าจอแสดงผลสถานะ */
+    /* 📊 UI สไตล์เกม Retro Sonic */
     #ui-container {
       position: absolute;
       top: 15px;
       left: 15px;
-      background: rgba(11, 21, 58, 0.85);
+      background: rgba(0, 0, 0, 0.7);
       color: #fff;
       padding: 15px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 240, 255, 0.4);
+      border-radius: 8px;
+      border: 3px solid #ffcc00;
       pointer-events: none;
       z-index: 10;
-      min-width: 240px;
-      box-shadow: 0 0 15px rgba(0,240,255,0.3);
+      min-width: 200px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    .status-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
-    #wave-text { color: #00f0ff; font-size: 1.2rem; text-shadow: 0 0 5px #00f0ff; }
-    #wood-text { color: #ffb74d; font-size: 1.1rem; text-shadow: 0 0 5px rgba(255,183,77,0.4); }
-    
-    /* หลอดเลือด HP */
-    .bar-bg { width: 100%; height: 14px; background: #331111; border-radius: 7px; overflow: hidden; border: 1px solid #ff4444; margin-bottom: 5px; }
-    #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff3333, #ff7777); transition: width 0.15s; }
-    
-    /* ข้อความประกาศกลางหน้าจอ */
-    #msg-overlay {
-      position: absolute;
-      top: 25%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #ff3333;
-      font-size: 2rem;
+    .sonic-text {
       font-weight: bold;
-      text-shadow: 0 0 10px #000;
-      pointer-events: none;
-      z-index: 10;
-      text-align: center;
-      display: none;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      text-shadow: 2px 2px #000;
     }
+    #zone-title { color: #ffcc00; }
+    #score-text { color: #ff3333; }
+    #ring-text { color: #ffcc00; }
 
     /* เป้าเล็งตรงกลางหน้าจอ */
     #crosshair {
@@ -62,23 +48,23 @@
       left: 50%;
       width: 6px;
       height: 6px;
-      background: #00f0ff;
+      background: #ffcc00;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       pointer-events: none;
       z-index: 5;
-      box-shadow: 0 0 6px #00f0ff;
+      box-shadow: 0 0 4px #000;
     }
 
-    /* โซนปุ่มควบคุม จอยสติ๊กซ้าย */
+    /* จอยสติ๊กควบคุมสัมผัส */
     #joystick-zone {
       position: absolute;
       bottom: 40px;
       left: 40px;
       width: 120px;
       height: 120px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
+      border: 3px solid #ffcc00;
       border-radius: 50%;
       touch-action: none;
       z-index: 10;
@@ -86,13 +72,14 @@
     #joystick-stick {
       width: 50px;
       height: 50px;
-      background: linear-gradient(135deg, #00f0ff, #0072ff);
+      background: linear-gradient(135deg, #0055ff, #0022aa);
+      border: 2px solid #fff;
       border-radius: 50%;
       position: absolute;
-      left: 35px;
-      top: 35px;
+      left: 32px;
+      top: 32px;
       touch-action: none;
-      box-shadow: 0 4px 10px rgba(0, 114, 255, 0.4);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -100,179 +87,141 @@
 <body>
 
   <div id="ui-container">
-    <div class="status-row">
-      <span id="wave-text">เวฟ 1 / 10</span>
-    </div>
-    <div class="status-row" style="justify-content: flex-start; margin-bottom: 10px;">
-      <span id="wood-text">🪵 ฟืนในตัว: 0 / 10</span>
-    </div>
-    <div style="margin-bottom: 5px; font-size: 0.85rem; color:#ccc;">HP ของผู้เล่น:</div>
-    <div class="bar-bg"><div id="hp-bar"></div></div>
-    <div style="font-size: 0.75rem; margin-top: 8px; color: #a6d5ff;">*สับต้นไม้เพื่อรับฟืน นำมาเติมกองไฟเพื่อผ่านเวฟ!*</div>
+    <div class="sonic-text" id="zone-title">ANGEL ISLAND ZONE</div>
+    <div class="sonic-text" id="score-text">SCORE: 000000</div>
+    <div class="sonic-text" id="ring-text">✨ RINGS: 000</div>
+    <div style="font-size: 0.75rem; margin-top: 5px; color: #aaa;">*ลากจอฝั่งซ้ายเดิน | ลากจอฝั่งขวาหันมุมกล้อง*</div>
   </div>
 
-  <div id="msg-overlay"></div>
   <div id="crosshair"></div>
   <div id="canvas-container"></div>
   <div id="joystick-zone"><div id="joystick-stick"></div></div>
 
     <script>
-    // --- 1. ระบบข้อมูลสถานะภายในเกม ---
-    let hp = 100;
-    let currentWave = 1;
-    let woodCollected = 0; // 🪵 จำนวนฟืนที่เก็บได้
-    let isGameOver = false;
-
-    // --- 2. การตั้งค่าฉากและแสงไฟ (คืนที่มืดน้อยลง + หมอกจางเห็นชัด) ---
+    // --- 1. ตั้งค่าฉากหลัง ท้องฟ้าสีสดใส ไร้หมอกมืด ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b153a); // ท้องฟ้าสีน้ำเงินสว่างนวลตา
-    scene.fog = new THREE.FogExp2(0x0b153a, 0.012); // ลดหมอกลงให้จางลง (0.012) มองเห็นได้ไกลขึ้นชัดเจน
-
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    scene.background = new THREE.Color(0x3399ff); // ฟ้าสดใสสไตล์ด่านแรกรุ่นเก๋า
+    
+    // บรรยากาศเคลียร์ ไม่มีหมอกหนามาบังทางเดิน
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    // ปรับเพิ่มความสว่างโดยรอบ (Ambient Light)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); 
-    scene.add(ambientLight);
+    // แสงแดดจ้าสะท้อนสีสันฉากสุดแจ่ม
+    const sunLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(sunLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(40, 80, 40);
+    scene.add(dirLight);
 
-    // แสงจันทร์ส่องสว่างช่วยนำทางในป่า
-    const moonLight = new THREE.DirectionalLight(0xaac0ff, 0.55);
-    moonLight.position.set(30, 60, 20);
-    scene.add(moonLight);
+    // --- 2. การสร้างพื้นหญ้าสีเขียวสดและตารางหมากรุก (Sonic Texture Logic) ---
+    const mapGroup = new THREE.Group();
+    scene.add(mapGroup);
 
-    // ไฟฉายส่องสว่างส่วนตัวของผู้เล่น
-    const flashlight = new THREE.SpotLight(0xfffdf0, 4.0, 90, Math.PI / 4.5, 0.5, 0.5);
-    scene.add(flashlight);
-    scene.add(flashlight.target);
+    // ฟังก์ชันสร้างบล็อกทางเดินตารางหมากรุกสไตล์โซนิค
+    function createSonicBlock(x, y, z, w, h, d) {
+      const blockGroup = new THREE.Group();
+      
+      // ส่วนบน: พื้นหญ้าสีเขียวสด
+      const grassGeo = new THREE.BoxGeometry(w, 0.3, d);
+      const grassMat = new THREE.MeshStandardMaterial({ color: 0x00cc44, roughness: 0.7 });
+      const grass = new THREE.Mesh(grassGeo, grass);
+      grass.position.y = h / 2;
+      blockGroup.add(grass);
 
-    // พื้นหญ้าในป่า
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x1a3322, roughness: 0.85 }));
-    ground.rotation.x = -Math.PI / 2;
-    scene.add(ground);
+      // ส่วนล่าง: ดินลายตารางสีน้ำตาลเหลืองสลับกัน
+      const dirtGeo = new THREE.BoxGeometry(w, h - 0.3, d);
+      const dirtMat = new THREE.MeshStandardMaterial({ color: 0x995522, roughness: 0.9 });
+      const dirt = new THREE.Mesh(dirtGeo, dirtMat);
+      dirt.position.y = -0.15;
+      blockGroup.add(dirt);
 
-    const playerPosition = new THREE.Vector3(0, 2, 15);
-    camera.position.copy(playerPosition);
-
-    // --- 3. ระบบดาวบนท้องฟ้าแบบสว่างชัดเจน (Bright Stars System) ---
-    const starsGeo = new THREE.BufferGeometry();
-    const starsCount = 650; // เพิ่มจำนวนดวงดาวให้สวยงามหนาตา
-    const starsPos = new Float32Array(starsCount * 3);
-    for(let i=0; i<starsCount*3; i+=3) {
-      starsPos[i] = (Math.random() - 0.5) * 400;
-      starsPos[i+1] = 45 + Math.random() * 65; 
-      starsPos[i+2] = (Math.random() - 0.5) * 400;
+      blockGroup.position.set(x, y, z);
+      mapGroup.add(blockGroup);
     }
-    starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-    // ตั้งค่าดาวสีขาวนวล สว่างเด่นชัดเจน
-    const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, transparent: true, opacity: 0.9 });
-    const starField = new THREE.Points(starsGeo, starsMat);
-    scene.add(starField);
 
-    // --- 4. สร้างกองไฟเซฟโซนตรงกลางแผนที่ (Campfire) ---
-    const campfireGroup = new THREE.Group();
-    campfireGroup.position.set(0, 0, 0);
-    const logMat = new THREE.MeshStandardMaterial({ color: 0x422517 });
-    for(let i=0; i<4; i++) {
-      const campLog = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.4), logMat);
-      campLog.rotation.z = Math.PI/2; campLog.rotation.y = (Math.PI/4) * i;
-      campfireGroup.add(campLog);
-    }
-    scene.add(campfireGroup);
+    // --- 3. ออกแบบแผนที่ "หลายเส้นทาง" และ "แม่น้ำไหลผ่าน" ---
+    // พื้นโซนเริ่มต้น
+    createSonicBlock(0, 0, 40, 30, 2, 30);
 
-    const campfireLight = new THREE.PointLight(0xff7700, 5, 35);
-    campfireLight.position.set(0, 1, 0);
-    scene.add(campfireLight);
+    // 🌊 แม่น้ำสีฟ้ายาวตัดผ่านกลางฉาก
+    const riverGeo = new THREE.PlaneGeometry(16, 200);
+    const riverMat = new THREE.MeshStandardMaterial({ color: 0x00ddff, roughness: 0.2, transparent: true, opacity: 0.8 });
+    const river = new THREE.Mesh(riverGeo, riverMat);
+    river.rotation.x = -Math.PI / 2;
+    river.position.set(0, -0.8, -10);
+    scene.add(river);
 
-    const fireMesh = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.2, 8), new THREE.MeshBasicMaterial({ color: 0xff5500, wireframe: true }));
-    fireMesh.position.set(0, 0.6, 0);
-    scene.add(fireMesh);
+    // สะพานไม้ข้ามแม่น้ำเชื่อมทางเดิน
+    const bridgeGeo = new THREE.BoxGeometry(18, 0.2, 8);
+    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0xcc8844, roughness: 0.6 });
+    const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+    bridge.position.set(0, 0.2, 20);
+    scene.add(bridge);
 
-    // --- 5. คลังข้อมูลระบบจัดการต้นไม้ และขอนไม้/ฟืนที่ดรอปบนพื้น ---
-    const trees = [];
-    const woodLogs = [];
+    // 🔀 เส้นทางแยกฝั่งข้ามแม่น้ำ (เลือกไปได้หลายทาง)
+    // เส้นทางซ้าย: ทางระดับสูง ไต่โขดหิน
+    createSonicBlock(-25, 0, -10, 15, 2, 40);
+    createSonicBlock(-25, 2, -40, 15, 4, 30); // ทางยกระดับสูงขึ้น
 
-    function createTree(x, z) {
-      if (Math.abs(x) < 16 && Math.abs(z) < 16) return;
+    // เส้นทางขวา: ทางเลียบแม่น้ำและต้นไม้หนาตา
+    createSonicBlock(25, 0, -10, 15, 2, 40);
+    createSonicBlock(25, 0, -45, 15, 2, 30);
 
+    // --- 4. ตกแต่งต้นไม้สไตล์ Sonic 3 A.I.R ---
+    function createSonicTree(x, z) {
       const treeGroup = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 5, 8), new THREE.MeshStandardMaterial({ color: 0x4a2e1b }));
-      trunk.position.y = 2.5;
+      
+      // ลำต้นตรงสีส้มน้ำตาลแบบย้อนยุค
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 4), new THREE.MeshStandardMaterial({ color: 0xdd7722 }));
+      trunk.position.y = 2;
       treeGroup.add(trunk);
 
-      const leaveMat = new THREE.MeshStandardMaterial({ color: 0x0f3d1d, roughness: 0.8 });
-      for(let i=0; i<4; i++) {
-        const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5 - (i*0.4), 3.5, 8), leaveMat);
-        leaves.position.y = 4.0 + (i * 1.5);
+      // พุ่มใบไม้ทรงเหลี่ยมเลเยอร์ชั้นๆ
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x00aa33, roughness: 0.5 });
+      for(let i = 0; i < 3; i++) {
+        const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.2 - (i*0.5), 2, 5), leafMat);
+        leaves.position.y = 3.5 + (i * 1.2);
         treeGroup.add(leaves);
       }
-      treeGroup.position.set(x, 0, z);
-      treeGroup.userData = { radius: 1.2, isTree: true };
       
+      treeGroup.position.set(x, 0.8, z);
       scene.add(treeGroup);
-      trees.push(treeGroup);
     }
 
-    for (let i = 0; i < 500; i++) {
-      createTree((Math.random() - 0.5) * 380, (Math.random() - 0.5) * 380);
+    // วางต้นไม้กระจายตามเส้นทางต่างๆ
+    createSonicTree(-8, 35);
+    createSonicTree(8, 35);
+    createSonicTree(-25, -5);
+    createSonicTree(-22, -25);
+    createSonicTree(25, -20);
+    createSonicTree(28, -40);
+
+    // --- 5. วางไอเทมวงแหวนทองคำ (Rings) เอกลักษณ์ของเกมโซนิค ---
+    const rings = [];
+    function spawnRing(x, y, z) {
+      const ringGeo = new THREE.TorusGeometry(0.4, 0.1, 8, 24);
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.9, roughness: 0.1, emissive: 0x443300 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(x, y, z);
+      scene.add(ring);
+      rings.push(ring);
     }
 
-    // ฟังก์ชันสร้างท่อนฟืนตกลงบนพื้นหลังจากสับต้นไม้
-    function spawnWoodLog(x, z) {
-      const wood = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.75, 8), new THREE.MeshStandardMaterial({ color: 0xb3773b }));
-      wood.rotation.z = Math.PI / 2;
-      wood.position.set(x, 0.1, z);
-      scene.add(wood);
-      woodLogs.push(wood);
-    }
+    // วางแหวนตามทางเลือกเดิน
+    spawnRing(-25, 1.8, -5); spawnRing(-25, 1.8, -10); // ทางซ้าย
+    spawnRing(0, 1.5, 20); spawnRing(25, 1.8, -15);    // บนสะพาน และ ทางขวา
 
-    // --- 6. ดีไซน์โมเดลขวาน (AXE) ติดหน้าจอฝั่งขวา ---
-    const axeGroup = new THREE.Group();
-    const handleMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.85), new THREE.MeshStandardMaterial({ color: 0x6e4726 }));
-    handleMesh.rotation.x = Math.PI / 2;
-    axeGroup.add(handleMesh);
+    // --- 6. ระบบควบคุมผ่านหน้าจอแท็บเล็ต มุมกล้องที่เก็บจากของเก่ามาใช้ ---
+    let playerPosition = new THREE.Vector3(0, 2.2, 45); // จุดเกิดโซนแรก
+    camera.position.copy(playerPosition);
 
-    const bladeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.24), new THREE.MeshStandardMaterial({ color: 0xb0c4de, metalness: 0.85, roughness: 0.15 }));
-    bladeMesh.position.set(0, 0.07, -0.32);
-    axeGroup.add(bladeMesh);
-    scene.add(axeGroup);
-
-    // --- 7. กองทัพมอนสเตอร์บล็อกกลมสีแดง (Enemies System) ---
-    const enemies = [];
-    const campfireRadius = 14; 
-
-    function spawnWave(waveNum) {
-      if(waveNum > 10) {
-        showOverlay("🎉 ยอดเยี่ยม! คุณรอดพ้นป่าดงดิบครบ 10 เวฟแล้ว!", "#00f0ff");
-        isGameOver = true; return;
-      }
-      document.getElementById('wave-text').innerText = `เวฟ ${waveNum} / 10`;
-      showOverlay(`🌌 เวฟ ${waveNum} - สับต้นไม้เก็บฟืนไปเติมกองไฟให้เต็ม!`, "#ffea00");
-
-      const count = 6 + (waveNum * 3);
-      for(let i=0; i<count; i++) {
-        const enemy = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 }));
-        let angle = Math.random() * Math.PI * 2;
-        let radius = 60 + Math.random() * 60;
-        enemy.position.set(Math.cos(angle) * radius, 1.2, Math.sin(angle) * radius);
-        
-        enemy.userData = { lastAttackTime: 0, radius: 1.2 };
-        scene.add(enemy);
-        enemies.push(enemy);
-      }
-    }
-    setTimeout(() => { spawnWave(currentWave); }, 1500);
-
-    // --- 8. ระบบควบคุมปุ่มสัมผัสหน้าจอ (Multi-Touch) และท่าอนิเมชันฟันกวาดกว้าง ---
     let moveX = 0, moveZ = 0;
     let yaw = 0, pitch = 0;
     let joystickTouchId = null, lookTouchId = null;
     let lastTouchX = 0, lastTouchY = 0;
-    
-    let isAttacking = false;
-    let attackProgress = 0; 
 
     const stick = document.getElementById('joystick-stick');
     const zone = document.getElementById('joystick-zone');
@@ -282,7 +231,6 @@
     const maxRadius = 35;
 
     window.addEventListener('touchstart', (e) => {
-      if(isGameOver) return;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.clientX < window.innerWidth / 2 && touch.clientY > window.innerHeight / 2 && joystickTouchId === null) {
@@ -291,12 +239,6 @@
         } else if (lookTouchId === null) {
           lookTouchId = touch.identifier;
           lastTouchX = touch.clientX; lastTouchY = touch.clientY;
-          
-          if(!isAttacking && touch.clientX > window.innerWidth / 3) {
-            isAttacking = true;
-            attackProgress = 0;
-            performAxeSlash();
-          }
         }
       }
     }, { passive: false });
@@ -338,163 +280,41 @@
       moveX = deltaX / maxRadius; moveZ = -deltaY / maxRadius;
     }
 
-    function performAxeSlash() {
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-      
-      const hitEnemies = raycaster.intersectObjects(enemies);
-      if(hitEnemies.length > 0 && hitEnemies[0].distance < 6.5) {
-        const targetMonster = hitEnemies[0].object;
-        const idx = enemies.indexOf(targetMonster);
-        if(idx > -1) {
-          scene.remove(targetMonster);
-          enemies.splice(idx, 1);
-        }
-        return; 
-      }
-
-      const allTrunks = [];
-      trees.forEach(t => allTrunks.push(t.children[0])); 
-      
-      const hitTrees = raycaster.intersectObjects(allTrunks);
-      if(hitTrees.length > 0 && hitTrees[0].distance < 6.5) {
-        const targetTrunk = hitTrees[0].object;
-        const targetGroup = targetTrunk.parent; 
-        const idx = trees.indexOf(targetGroup);
-        if(idx > -1) {
-          spawnWoodLog(targetGroup.position.x, targetGroup.position.z);
-          scene.remove(targetGroup);
-          trees.splice(idx, 1);
-        }
-      }
-    }
-
-    function showOverlay(text, color) {
-      const overlay = document.getElementById('msg-overlay');
-      overlay.innerText = text; overlay.style.color = color;
-      overlay.style.display = 'block';
-      setTimeout(() => { overlay.style.display = 'none'; }, 2200);
-    }
-
-    // --- 9. ระบบประมวลผลลูปของเกมต่อเนื่อง (Game Loop) ---
+    // --- 7. ลูปขับเคลื่อนแอนิเมชันและระบบเกม (Game Loop) ---
     const clock = new THREE.Clock();
-    const playerSpeed = 8.0;
-    const enemySpeed = 4.6;
+    const playerSpeed = 11.0; // โซนิคต้องเดินเร็วกว่าเก่านิดนึง!
+    let ringCount = 0;
 
     function animate() {
       requestAnimationFrame(animate);
-      if(isGameOver) return;
 
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
-      const oldPlayerPos = playerPosition.clone();
 
+      // การเคลื่อนที่อิงตามมุมหันของตัวละคร
       if (moveX !== 0 || moveZ !== 0) {
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const moveDirection = forward.clone().multiplyScalar(moveZ).add(right.clone().multiplyScalar(moveX)).normalize();
         playerPosition.addScaledVector(moveDirection, playerSpeed * delta);
       }
-
-      for(let i=0; i<trees.length; i++) {
-        const treePos = trees[i].position;
-        const dist = playerPosition.distanceTo(new THREE.Vector3(treePos.x, playerPosition.y, treePos.z));
-        if(dist < trees[i].userData.radius + 0.6) {
-          playerPosition.copy(oldPlayerPos); 
-          break;
-        }
-      }
       camera.position.copy(playerPosition);
 
+      // ระบบควบคุมทิศทางสายตา
       const target = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      const lookDirection = target.clone().normalize();
-      camera.lookAt(camera.position.clone().add(lookDirection));
+      camera.lookAt(camera.position.clone().add(target.normalize()));
 
-      flashlight.position.copy(camera.position);
-      flashlight.target.position.copy(camera.position.clone().add(lookDirection.clone().multiplyScalar(10)));
-      fireMesh.scale.set(1 + Math.sin(time*10)*0.1, 1 + Math.cos(time*12)*0.1, 1);
-
-      // 🪵 ระบบเดินชนท่อนฟืนเพื่อนำไปเติมกองไฟเซฟโซน
-      for(let i = woodLogs.length - 1; i >= 0; i--) {
-        if(playerPosition.distanceTo(woodLogs[i].position) < 2.5) {
-          scene.remove(woodLogs[i]);
-          woodLogs.splice(i, 1);
-          
-          woodCollected++; // เก็บฟืนสำเร็จ
-          
-          document.getElementById('wood-text').innerText = `🪵 ฟืนในตัว: ${woodCollected} / 10`;
-
-          // เมื่อเก็บฟืนครบ 10 ชิ้นเพื่อเอาไปเติมกองไฟสำเร็จ -> ขึ้นเวฟใหม่ทันที
-          if(woodCollected >= 10) {
-            woodCollected = 0;
-            document.getElementById('wood-text').innerText = `🪵 ฟืนในตัว: 0 / 10`;
-            currentWave++;
-            enemies.forEach(e => scene.remove(e));
-            enemies.length = 0;
-            spawnWave(currentWave);
-          }
-        }
-      }
-
-      const baseAxePos = camera.position.clone()
-        .add(lookDirection.clone().multiplyScalar(0.45))
-        .add(new THREE.Vector3(0, 1, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(-0.25))
-        .add(new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(0.18));
-      
-      axeGroup.position.copy(baseAxePos);
-
-      if (isAttacking) {
-        attackProgress += delta * 14; 
-        axeGroup.rotation.set(pitch + Math.sin(attackProgress)*0.4, yaw - Math.sin(attackProgress)*1.2, Math.cos(attackProgress)*0.5);
-        if(attackProgress > Math.PI) { isAttacking = false; }
-      } else {
-        axeGroup.rotation.set(pitch, yaw, 0);
-        if(moveX !== 0 || moveZ !== 0) { 
-          axeGroup.position.y += Math.sin(time * 12) * 0.005;
-        }
-      }
-
-      const currentTimeMs = Date.now();
-      enemies.forEach(enemy => {
-        const distToPlayer = enemy.position.distanceTo(playerPosition);
-        const distToCampfire = enemy.position.distanceTo(new THREE.Vector3(0, 1.2, 0));
-
-        if (distToCampfire > campfireRadius) {
-          if (distToPlayer < 75) {
-            const oldEnemyPos = enemy.position.clone(); 
-            
-            const dir = new THREE.Vector3().subVectors(playerPosition, enemy.position);
-            dir.y = 0; dir.normalize();
-            enemy.position.addScaledVector(dir, enemySpeed * delta);
-            enemy.position.y = 1.3 + Math.abs(Math.sin(time * 6 + enemy.id)) * 0.6;
-
-            for(let t=0; t<trees.length; t++) {
-              const treePos = trees[t].position;
-              const distTree = enemy.position.distanceTo(new THREE.Vector3(treePos.x, enemy.position.y, treePos.z));
-              if(distTree < trees[t].userData.radius + enemy.userData.radius) {
-                enemy.position.copy(oldEnemyPos); 
-                break;
-              }
-            }
-          }
-        } else {
-          const pushDir = new THREE.Vector3().subVectors(enemy.position, new THREE.Vector3(0, 1.2, 0)).setLength(1).multiplyScalar(enemySpeed * 1.5 * delta);
-          enemy.position.add(pushDir);
-        }
-
-        if (distToPlayer < 2.4) {
-          if (currentTimeMs - enemy.userData.lastAttackTime > 2000) {
-            hp -= 50;
-            enemy.userData.lastAttackTime = currentTimeMs; 
-            document.getElementById('hp-bar').style.width = `${hp}%`;
-            
-            if (hp <= 0 && !isGameOver) {
-              showOverlay("💀 GAME OVER! คุณพลาดท่าโดนบล็อกแดงขย้ำ!", "#ff3333");
-              isGameOver = true;
-            } else {
-              showOverlay("💥 อั่ก! โดนชนดาเมจ 50!", "#ff3b3b");
-            }
-          }
+      // 🔄 อนิเมชันวงแหวนหมุนติ้วๆ และระบบตรวจจับการเก็บแหวน
+      rings.forEach((ring, idx) => {
+        ring.rotation.y = time * 2.5;
+        
+        // ตรวจสอบว่าผู้เล่นเดินชนแหวนหรือไม่
+        if(playerPosition.distanceTo(ring.position) < 2.2) {
+          scene.remove(ring);
+          rings.splice(idx, 1);
+          ringCount++;
+          // อัปเดตข้อความบน UI หน้าจอให้เห็น
+          document.getElementById('ring-text').innerText = `✨ RINGS: ${String(ringCount).padStart(3, '0')}`;
         }
       });
 
