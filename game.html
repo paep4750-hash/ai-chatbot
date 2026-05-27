@@ -1,330 +1,283 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SONIC 3 A.I.R - THREE.JS EDITION</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #2288dd;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #canvas-container { width: 100vw; height: 100vh; }
-    
-    /* 📊 UI สไตล์เกม Retro Sonic */
-    #ui-container {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      border: 3px solid #ffcc00;
-      pointer-events: none;
-      z-index: 10;
-      min-width: 200px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    .sonic-text {
-      font-weight: bold;
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      text-shadow: 2px 2px #000;
-    }
-    #zone-title { color: #ffcc00; }
-    #score-text { color: #ff3333; }
-    #ring-text { color: #ffcc00; }
-
-    /* เป้าเล็งตรงกลางหน้าจอ */
-    #crosshair {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 6px;
-      height: 6px;
-      background: #ffcc00;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      z-index: 5;
-      box-shadow: 0 0 4px #000;
-    }
-
-    /* จอยสติ๊กควบคุมสัมผัส */
-    #joystick-zone {
-      position: absolute;
-      bottom: 40px;
-      left: 40px;
-      width: 120px;
-      height: 120px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 3px solid #ffcc00;
-      border-radius: 50%;
-      touch-action: none;
-      z-index: 10;
-    }
-    #joystick-stick {
-      width: 50px;
-      height: 50px;
-      background: linear-gradient(135deg, #0055ff, #0022aa);
-      border: 2px solid #fff;
-      border-radius: 50%;
-      position: absolute;
-      left: 32px;
-      top: 32px;
-      touch-action: none;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D First-Person Home & Street</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: sans-serif; }
+        #canvas-container { width: 100%; height: 100%; }
+        #instructions {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; font-size: 1.2rem; cursor: pointer; z-index: 10;
+        }
+        #instructions h1 { margin-bottom: 10px; font-size: 2.5rem; }
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 10px; height: 10px; background: white; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 5;
+            opacity: 0.7; display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
 
-  <div id="ui-container">
-    <div class="sonic-text" id="zone-title">ANGEL ISLAND ZONE</div>
-    <div class="sonic-text" id="score-text">SCORE: 000000</div>
-    <div class="sonic-text" id="ring-text">✨ RINGS: 000</div>
-    <div style="font-size: 0.75rem; margin-top: 5px; color: #aaa;">*ลากจอฝั่งซ้ายเดิน | ลากจอฝั่งขวาหันมุมกล้อง*</div>
-  </div>
+    <div id="instructions">
+        <h1>คลิกเพื่อเริ่มเล่น</h1>
+        <p>มุมมองบุคคลที่ 1: ขยับเมาส์เพื่อหันมอง<br>เดิน: W, A, S, D | ออกจากระบบ: ESC</p>
+    </div>
+    <div id="crosshair"></div>
+    <div id="canvas-container"></div>
 
-  <div id="crosshair"></div>
-  <div id="canvas-container"></div>
-  <div id="joystick-zone"><div id="joystick-stick"></div></div>
-  <script>
-    // --- 1. ตั้งค่าฉากหลัง ท้องฟ้าสีสดใส ไร้หมอกมืด ---
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x3399ff); // ฟ้าสดใสสไตล์ด่านแรกรุ่นเก๋า
-    
-    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-    // แสงแดดจ้าสะท้อนสีสันฉากสุดแจ่ม
-    const sunLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(sunLight);
-    
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(40, 80, 40);
-    scene.add(dirLight);
-
-    // --- 2. การสร้างพื้นหญ้าสีเขียวสดและตารางหมากรุก (Sonic Texture Logic) ---
-    const mapGroup = new THREE.Group();
-    scene.add(mapGroup);
-
-    // ฟังก์ชันสร้างบล็อกทางเดินตารางหมากรุกสไตล์โซนิค
-    function createSonicBlock(x, y, z, w, h, d) {
-      const blockGroup = new THREE.Group();
-      
-      // ส่วนบน: พื้นหญ้าสีเขียวสด
-      const grassGeo = new THREE.BoxGeometry(w, 0.3, d);
-      const grassMat = new THREE.MeshStandardMaterial({ color: 0x00cc44, roughness: 0.7 });
-      const grass = new THREE.Mesh(grassGeo, grassMat); // แก้ไขบั๊กตรงนี้แล้วจ้า!
-      grass.position.y = h / 2;
-      blockGroup.add(grass);
-
-      // ส่วนล่าง: ดินลายตารางสีน้ำตาลเหลืองสลับกัน
-      const dirtGeo = new THREE.BoxGeometry(w, h - 0.3, d);
-      const dirtMat = new THREE.MeshStandardMaterial({ color: 0x995522, roughness: 0.9 });
-      const dirt = new THREE.Mesh(dirtGeo, dirtMat);
-      dirt.position.y = -0.15;
-      blockGroup.add(dirt);
-
-      blockGroup.position.set(x, y, z);
-      mapGroup.add(blockGroup);
-    }
-
-    // --- 3. ออกแบบแผนที่ "หลายเส้นทาง" และ "แม่น้ำไหลผ่าน" ---
-    // พื้นโซนเริ่มต้น
-    createSonicBlock(0, 0, 40, 30, 2, 30);
-
-    // 🌊 แม่น้ำสีฟ้ายาวตัดผ่านกลางฉาก
-    const riverGeo = new THREE.PlaneGeometry(16, 200);
-    const riverMat = new THREE.MeshStandardMaterial({ color: 0x00ddff, roughness: 0.2, transparent: true, opacity: 0.8 });
-    const river = new THREE.Mesh(riverGeo, riverMat);
-    river.rotation.x = -Math.PI / 2;
-    river.position.set(0, -0.8, -10);
-    scene.add(river);
-
-    // สะพานไม้ข้ามแม่น้ำเชื่อมทางเดิน
-    const bridgeGeo = new THREE.BoxGeometry(18, 0.2, 8);
-    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0xcc8844, roughness: 0.6 });
-    const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
-    bridge.position.set(0, 0.2, 20);
-    scene.add(bridge);
-
-    // 🔀 เส้นทางแยกฝั่งข้ามแม่น้ำ (เลือกไปได้หลายทาง)
-    // เส้นทางซ้าย: ทางระดับสูง ไต่โขดหิน
-    createSonicBlock(-25, 0, -10, 15, 2, 40);
-    createSonicBlock(-25, 2, -40, 15, 4, 30); // ทางยกระดับสูงขึ้น
-
-    // เส้นทางขวา: ทางเลียบแม่น้ำและต้นไม้หนาตา
-    createSonicBlock(25, 0, -10, 15, 2, 40);
-    createSonicBlock(25, 0, -45, 15, 2, 30);
-
-    // --- 4. ตกแต่งต้นไม้สไตล์ Sonic 3 A.I.R ---
-    function createSonicTree(x, z) {
-      const treeGroup = new THREE.Group();
-      
-      // ลำต้นตรงสีส้มน้ำตาลแบบย้อนยุค
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 4), new THREE.MeshStandardMaterial({ color: 0xdd7722 }));
-      trunk.position.y = 2;
-      treeGroup.add(trunk);
-
-      // พุ่มใบไม้ทรงเหลี่ยมเลเยอร์ชั้นๆ
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x00aa33, roughness: 0.5 });
-      for(let i = 0; i < 3; i++) {
-        const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.2 - (i*0.5), 2, 5), leafMat);
-        leaves.position.y = 3.5 + (i * 1.2);
-        treeGroup.add(leaves);
-      }
-      
-      treeGroup.position.set(x, 0.8, z);
-      scene.add(treeGroup);
-    }
-
-    // วางต้นไม้กระจายตามเส้นทางต่างๆ
-    createSonicTree(-8, 35);
-    createSonicTree(8, 35);
-    createSonicTree(-25, -5);
-    createSonicTree(-22, -25);
-    createSonicTree(25, -20);
-    createSonicTree(28, -40);
-
-    // --- 5. วางไอเทมวงแหวนทองคำ (Rings) เอกลักษณ์ของเกมโซนิค ---
-    const rings = [];
-    function spawnRing(x, y, z) {
-      const ringGeo = new THREE.TorusGeometry(0.4, 0.1, 8, 24);
-      const ringMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.9, roughness: 0.1, emissive: 0x443300 });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.set(x, y, z);
-      scene.add(ring);
-      rings.push(ring);
-    }
-
-    // วางแหวนตามทางเลือกเดิน
-    spawnRing(-25, 1.8, -5); spawnRing(-25, 1.8, -10); // ทางซ้าย
-    spawnRing(0, 1.5, 20); spawnRing(25, 1.8, -15);    // บนสะพาน และ ทางขวา
-
-    // --- 6. ระบบควบคุมผ่านหน้าจอแท็บเล็ต มุมกล้องที่เก็บจากของเก่ามาใช้ ---
-    let playerPosition = new THREE.Vector3(0, 2.2, 45); // จุดเกิดโซนแรก
-    camera.position.copy(playerPosition);
-
-    let moveX = 0, moveZ = 0;
-    let yaw = 0, pitch = 0;
-    let joystickTouchId = null, lookTouchId = null;
-    let lastTouchX = 0, lastTouchY = 0;
-
-    const stick = document.getElementById('joystick-stick');
-    const zone = document.getElementById('joystick-zone');
-    const rect = zone.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const maxRadius = 35;
-
-    window.addEventListener('touchstart', (e) => {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        if (touch.clientX < window.innerWidth / 2 && touch.clientY > window.innerHeight / 2 && joystickTouchId === null) {
-          joystickTouchId = touch.identifier;
-          updateJoystick(touch);
-        } else if (lookTouchId === null) {
-          lookTouchId = touch.identifier;
-          lastTouchX = touch.clientX; lastTouchY = touch.clientY;
-        }
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.identifier === joystickTouchId) updateJoystick(touch);
-        if (touch.identifier === lookTouchId) {
-          const deltaX = touch.clientX - lastTouchX;
-          const deltaY = touch.clientY - lastTouchY;
-          yaw -= deltaX * 0.005; pitch -= deltaY * 0.005;
-          pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, pitch));
-          lastTouchX = touch.clientX; lastTouchY = touch.clientY;
-        }
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchend', (e) => {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        if (touch.identifier === joystickTouchId) {
-          joystickTouchId = null; stick.style.transform = 'translate(0px, 0px)';
-          moveX = 0; moveZ = 0;
-        }
-        if (touch.identifier === lookTouchId) lookTouchId = null;
-      }
-    });
-
-    function updateJoystick(touch) {
-      let deltaX = touch.clientX - centerX;
-      let deltaY = touch.clientY - centerY;
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      if (distance > maxRadius) {
-        deltaX = (deltaX / distance) * maxRadius;
-        deltaY = (deltaY / distance) * maxRadius;
-      }
-      stick.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-      moveX = deltaX / maxRadius; moveZ = -deltaY / maxRadius;
-    }
-
-    // --- 7. ลูปขับเคลื่อนแอนิเมชันและระบบเกม (Game Loop) ---
-    const clock = new THREE.Clock();
-    const playerSpeed = 11.0; 
-    let ringCount = 0;
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
-
-      // การเคลื่อนที่อิงตามมุมหันของตัวละคร
-      if (moveX !== 0 || moveZ !== 0) {
-        const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-        const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-        const moveDirection = forward.clone().multiplyScalar(moveZ).add(right.clone().multiplyScalar(moveX)).normalize();
-        playerPosition.addScaledVector(moveDirection, playerSpeed * delta);
-      }
-      camera.position.copy(playerPosition);
-
-      // ระบบควบคุมทิศทางสายตา
-      const target = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      camera.lookAt(camera.position.clone().add(target.normalize()));
-
-      // 🔄 อนิเมชันวงแหวนหมุนติ้วๆ และระบบตรวจจับการเก็บแหวน
-      rings.forEach((ring, idx) => {
-        ring.rotation.y = time * 2.5;
+    <script>
+        let scene, camera, renderer, controls;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let prevTime = performance.now();
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
         
-        // ตรวจสอบว่าผู้เล่นเดินชนแหวนหรือไม่
-        if(playerPosition.distanceTo(ring.position) < 2.2) {
-          scene.remove(ring);
-          rings.splice(idx, 1);
-          ringCount++;
-          document.getElementById('ring-text').innerText = `✨ RINGS: ${String(ringCount).padStart(3, '0')}`;
+        // อาร์เรย์สำหรับเก็บข้อมูลรถสัญจร
+        let cars = [];
+        const carSpeed = 0.15;
+
+        const instructions = document.getElementById('instructions');
+        const crosshair = document.getElementById('crosshair');
+
+        init();
+        animate();
+
+        function init() {
+            // 1. สร้างฉากและตั้งค่าพื้นหลังเป็นท้องฟ้าสีฟ้า
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+
+            // 2. กล้องถ่ายภาพ (ระดับสายตาคนสูงประมาณ 1.6 หน่วย)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 0); 
+
+            // 3. ระบบควบคุมบุคคลที่ 1 (Pointer Lock)
+            controls = new THREE.PointerLockControls(camera, document.body);
+
+            instructions.addEventListener('click', () => { controls.lock(); });
+            controls.addEventListener('lock', () => {
+                instructions.style.display = 'none';
+                crosshair.style.display = 'block';
+            });
+            controls.addEventListener('unlock', () => {
+                instructions.style.display = 'flex';
+                crosshair.style.display = 'none';
+            });
+
+            scene.add(controls.getObject());
+
+            // ตรวจจับการกดแป้นพิมพ์
+            const onKeyDown = (event) => {
+                switch (event.code) {
+                    case 'KeyW': moveForward = true; break;
+                    case 'KeyA': moveLeft = true; break;
+                    case 'KeyS': moveBackward = true; break;
+                    case 'KeyD': moveRight = true; break;
+                }
+            };
+            const onKeyUp = (event) => {
+                switch (event.code) {
+                    case 'KeyW': moveForward = false; break;
+                    case 'KeyA': moveLeft = false; break;
+                    case 'KeyS': moveBackward = false; break;
+                    case 'KeyD': moveRight = false; break;
+                }
+            };
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // 4. แสงสว่าง
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 40, 20);
+            scene.add(dirLight);
+
+            // 5. สร้างสิ่งแวดล้อม
+            createWorld();
+
+            // 6. เรนเดอร์ลงหน้าจอ
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize);
         }
-      });
 
-      renderer.render(scene, camera);
-    }
+        function createWorld() {
+            // สวน/พื้นดินรอบๆ
+            const groundGeo = new THREE.PlaneGeometry(1000, 1000);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x557a46 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+            // --- [สร้างบ้าน] ---
+            // พื้นบ้าน (ยกสูงขึ้นนิดหน่อย)
+            const floorGeo = new THREE.PlaneGeometry(8, 8);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xd2b48c });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(0, 0.01, -2);
+            scene.add(floor);
 
-    animate();
-  </script>
+            // ผนังบ้าน (ใช้กล่องสี่เหลี่ยมประกอบกัน)
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc });
+            
+            const wallBack = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 0.2), wallMat); // หลัง
+            wallBack.position.set(0, 1.5, -6);
+            scene.add(wallBack);
+
+            const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 8), wallMat); // ซ้าย
+            wallLeft.position.set(-4, 1.5, -2);
+            scene.add(wallLeft);
+
+            const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 8), wallMat); // ขวา
+            wallRight.position.set(4, 1.5, -2);
+            scene.add(wallRight);
+
+            // ผนังหน้าบ้าน (แบ่งเป็นฝั่งซ้ายและขวา เว้นตรงกลางเป็นประตูให้เดินออกได้)
+            const wallFrontLeft = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 0.2), wallMat);
+            wallFrontLeft.position.set(-2.5, 1.5, 2);
+            scene.add(wallFrontLeft);
+
+            const wallFrontRight = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 0.2), wallMat);
+            wallFrontRight.position.set(2.5, 1.5, 2);
+            scene.add(wallFrontRight);
+
+            const wallFrontTop = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 0.2), wallMat); // ขอบบนประตู
+            wallFrontTop.position.set(0, 2.6, 2);
+            scene.add(wallFrontTop);
+
+            // หลังคาบ้าน
+            const roofGeo = new THREE.ConeGeometry(6, 2, 4);
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000 });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.set(0, 4, -2);
+            roof.rotation.y = Math.PI / 4;
+            scene.add(roof);
+
+
+            // --- [สร้างถนนนอกบ้าน] ---
+            const roadGeo = new THREE.PlaneGeometry(1000, 12);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0.02, 15); // ห่างจากหน้าบ้านออกไป 15 หน่วย
+            scene.add(road);
+
+            // เส้นกลางถนน
+            for(let i = -200; i < 200; i += 10) {
+                const lineGeo = new THREE.PlaneGeometry(4, 0.2);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(i, 0.03, 15);
+                scene.add(line);
+            }
+
+            // --- [ระบบเกิดรถอัตโนมัติ] ---
+            // สร้างรถเริ่มต้นไว้ 4 คัน กระจายตำแหน่งกัน
+            for (let i = 0; i < 4; i++) {
+                spawnCar((i * 60) - 100);
+            }
+        }
+
+        function spawnCar(xPosition = -150) {
+            // โมเดลรถแบบง่าย (กล่องสีแดง มีล้อสีดำ)
+            const carGroup = new THREE.Group();
+            
+            const bodyGeo = new THREE.BoxGeometry(4, 1.2, 2);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0xcc2222 : 0x2222cc }); // สุ่มรถสีแดงหรือน้ำเงิน
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.8;
+            carGroup.add(body);
+
+            // กระจกหน้ารถ
+            const cabinGeo = new THREE.BoxGeometry(2, 0.8, 1.8);
+            const cabinMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+            cabin.position.set(0.2, 1.6, 0);
+            carGroup.add(cabin);
+
+            // ล้อรถ 4 ล้อ
+            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 12);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            
+            const positions = [[-1.2, 0.4, 1], [1.2, 0.4, 1], [-1.2, 0.4, -1], [1.2, 0.4, -1]];
+            positions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                carGroup.add(wheel);
+            });
+
+            // สุ่มให้วิ่งเลนซ้ายหรือขวา
+            const isLeftLane = Math.random() > 0.5;
+            carGroup.position.set(xPosition, 0, isLeftLane ? 13.5 : 16.5);
+            
+            // ถ้าวิ่งเลนขวา ให้หันหน้ากลับไปอีกทางหนึ่ง
+            carGroup.userData = { direction: isLeftLane ? 1 : -1 };
+            if(!isLeftLane) carGroup.rotation.y = Math.PI;
+
+            scene.add(carGroup);
+            cars.push(carGroup);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls.isLocked === true) {
+                const time = performance.now();
+                const delta = (time - prevTime) / 1000;
+
+                // การหน่วงความเร็วในการเดิน (Damping)
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); 
+
+                // ปรับความเร็วเคลื่อนที่ตามปุ่มที่กด
+                if (moveForward || moveBackward) velocity.z -= direction.z * 40.0 * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * 40.0 * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                prevTime = time;
+            }
+
+            // --- [อัปเดตการเคลื่อนที่ของรถยนต์] ---
+            cars.forEach((car, index) => {
+                car.position.x += carSpeed * car.userData.direction;
+
+                // ถ้ารถวิ่งเลยขอบแมพ ให้วาร์ปกลับไปเริ่มใหม่ฝั่งตรงข้าม
+                if (car.position.x > 150 && car.userData.direction === 1) {
+                    car.position.x = -150;
+                } else if (car.position.x < -150 && car.userData.direction === -1) {
+                    car.position.x = 150;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
 </body>
 </html>
